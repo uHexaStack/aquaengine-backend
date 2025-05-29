@@ -5,11 +5,14 @@ import com.qu3dena.aquaengine.backend.iam.application.internal.outboundservices.
 import com.qu3dena.aquaengine.backend.iam.domain.model.aggregates.UserAggregate;
 import com.qu3dena.aquaengine.backend.iam.domain.model.commands.SignInCommand;
 import com.qu3dena.aquaengine.backend.iam.domain.model.commands.SignUpCommand;
+import com.qu3dena.aquaengine.backend.iam.domain.model.events.UserRegisteredEvent;
 import com.qu3dena.aquaengine.backend.iam.domain.model.valueobjects.Roles;
 import com.qu3dena.aquaengine.backend.iam.domain.services.UserCommandService;
 import com.qu3dena.aquaengine.backend.iam.infrastructure.persistence.jpa.repositories.RoleRepository;
 import com.qu3dena.aquaengine.backend.iam.infrastructure.persistence.jpa.repositories.UserRepository;
+import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -25,10 +28,12 @@ import java.util.stream.Collectors;
 @Service
 public class UserCommandServiceImpl implements UserCommandService {
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
     private final TokenService tokenService;
     private final HashingService hashingService;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+
+    private final ApplicationEventPublisher events;
 
     /**
      * Creates a new instance of {@code UserCommandServiceImpl} with the required dependencies.
@@ -38,10 +43,11 @@ public class UserCommandServiceImpl implements UserCommandService {
      * @param tokenService   service for token generation
      * @param hashingService service for password validation and hashing
      */
-    public UserCommandServiceImpl(UserRepository userRepository, RoleRepository roleRepository, TokenService tokenService, HashingService hashingService) {
+    public UserCommandServiceImpl(UserRepository userRepository, RoleRepository roleRepository, TokenService tokenService, HashingService hashingService, ApplicationEventPublisher events) {
+        this.events = events;
+        this.tokenService = tokenService;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
-        this.tokenService = tokenService;
         this.hashingService = hashingService;
     }
 
@@ -56,22 +62,41 @@ public class UserCommandServiceImpl implements UserCommandService {
      * @return an {@code Optional} with the registered user if the operation was successful
      * @throws RuntimeException if the username already exists or any role is not found
      */
+    @Transactional
     @Override
     public Optional<UserAggregate> handle(SignUpCommand command) {
+
         if (userRepository.existsByUsername(command.username()))
             throw new RuntimeException("Username already exists");
+
+        var encoded = hashingService.encode(command.password());
 
         var roles = command.roles().stream()
                 .map(role -> roleRepository.findByName(role.getName())
                         .orElseThrow(() -> new RuntimeException("Role not found"))).collect(Collectors.toSet());
 
-        var encodedPassword = hashingService.encode(command.password());
 
-        var user = UserAggregate.create(command.username(), encodedPassword, roles);
+        var user = UserAggregate.create(command.username(), encoded, roles);
 
-        userRepository.save(user);
+        var saved = userRepository.save(user);
 
-        return userRepository.findByUsername(command.username());
+        var event = new UserRegisteredEvent(
+                saved.getId(),
+                command.firstName(),
+                command.lastName(),
+                command.contactEmail(),
+                command.contactPhone(),
+                command.companyName(),
+                command.companyStreet(),
+                command.companyCity(),
+                command.postalCode(),
+                command.companyNumber(),
+                command.companyCountry()
+        );
+
+        events.publishEvent(event);
+
+        return Optional.of(saved);
     }
 
     /**

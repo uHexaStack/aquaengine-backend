@@ -1,7 +1,6 @@
 package com.qu3dena.aquaengine.backend.iam.domain.model.aggregates;
 
 import com.qu3dena.aquaengine.backend.iam.domain.model.entities.Role;
-import com.qu3dena.aquaengine.backend.iam.domain.model.events.UserRegisteredEvent;
 import com.qu3dena.aquaengine.backend.shared.domain.model.aggregates.AuditableAbstractAggregateRoot;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -59,13 +58,6 @@ public class UserAggregate extends AuditableAbstractAggregateRoot<UserAggregate>
     }
 
     public static UserAggregate create(String username, String password, Set<Role> roles) {
-        var user = new UserAggregate(username, password, roles);
-
-        user.registerEvent(new UserRegisteredEvent(
-                user.getId(),
-                user.getUsername()
-        ));
-
-        return user;
+        return new UserAggregate(username, password, roles);
     }
 }

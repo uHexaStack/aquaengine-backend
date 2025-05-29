@@ -12,5 +12,19 @@ import java.util.Set;
  * @param password the password of the user to be registered
  * @param roles    the set of roles assigned to the user
  */
-public record SignUpResource(String username, String password, Set<String> roles) {
+public record SignUpResource(
+        String username,
+        String password,
+        Set<String> roles,
+        String firstName,
+        String lastName,
+        String contactEmail,
+        String contactPhone,
+        String companyName,
+        String companyStreet,
+        String companyCity,
+        String postalCode,
+        String companyNumber,
+        String companyCountry
+) {
 }

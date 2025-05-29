@@ -17,6 +17,20 @@ public class SignUpCommandFromResourceAssembler {
     public static SignUpCommand toCommandFromResource(SignUpResource resource) {
         var roles = RoleSetFromStringAssembler.toRoleSetFromStringSet(resource.roles());
         System.out.println("roles: " + roles);
-        return new SignUpCommand(resource.username(), resource.password(), roles);
+        return new SignUpCommand(
+                resource.username(),
+                resource.password(),
+                roles,
+                resource.firstName(),
+                resource.lastName(),
+                resource.contactEmail(),
+                resource.contactPhone(),
+                resource.companyName(),
+                resource.companyStreet(),
+                resource.companyCity(),
+                resource.postalCode(),
+                resource.companyNumber(),
+                resource.companyCountry()
+        );
     }
 }
