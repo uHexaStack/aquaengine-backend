@@ -4,19 +4,19 @@ import com.qu3dena.aquaengine.backend.order.domain.model.aggregates.OrderAggrega
 import com.qu3dena.aquaengine.backend.shared.domain.model.entities.AuditableModel;
 import com.qu3dena.aquaengine.backend.shared.domain.model.valuobjects.Money;
 import jakarta.persistence.*;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+@Data
 @Entity
 @NoArgsConstructor
 @Table(name = "order_lines")
+@EqualsAndHashCode(callSuper = true)
 public class OrderLine extends AuditableModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Setter
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "order_id")
     private OrderAggregate order;
