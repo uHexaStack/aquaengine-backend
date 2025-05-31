@@ -18,17 +18,17 @@ import java.sql.Timestamp;
  * </p>
  */
 @Service
-public class ApplicationReadyEventHandler {
+public class IamApplicationReadyEventHandler {
 
     private final RoleCommandService roleCommandService;
-    private static final Logger LOGGER = LoggerFactory.getLogger(ApplicationReadyEventHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(IamApplicationReadyEventHandler.class);
 
     /**
      * Constructs the event handler with the required {@link RoleCommandService}.
      *
      * @param roleCommandService the service used to seed roles
      */
-    public ApplicationReadyEventHandler(RoleCommandService roleCommandService) {
+    public IamApplicationReadyEventHandler(RoleCommandService roleCommandService) {
         this.roleCommandService = roleCommandService;
     }
 
