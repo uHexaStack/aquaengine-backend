@@ -6,11 +6,7 @@ import jakarta.persistence.Embeddable;
 public record Quantity(Integer amount) {
 
     public Quantity {
-        if (!isPositive())
+        if (amount == null || amount <= 0)
             throw new IllegalArgumentException("Amount must be a positive integer.");
-    }
-
-    private boolean isPositive() {
-        return amount != null && amount > 0;
     }
 }
