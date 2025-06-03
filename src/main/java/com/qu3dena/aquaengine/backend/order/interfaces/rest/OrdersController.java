@@ -1,6 +1,6 @@
 package com.qu3dena.aquaengine.backend.order.interfaces.rest;
 
-import com.qu3dena.aquaengine.backend.order.domain.model.commands.CreateOrderCommand;
+import com.qu3dena.aquaengine.backend.order.domain.model.commands.CancelOrderCommand;
 import com.qu3dena.aquaengine.backend.order.domain.model.queries.GetOrderByIdQuery;
 import com.qu3dena.aquaengine.backend.order.domain.model.queries.GetOrdersByUserIdQuery;
 import com.qu3dena.aquaengine.backend.order.domain.services.OrderCommandService;
@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.CREATED;
 
@@ -81,5 +82,35 @@ public class OrdersController {
         return order.map(source -> new ResponseEntity<>
                         (OrderResourceFromEntityAssembler.toResourceFromEntity(source), CREATED))
                 .orElseGet(() -> ResponseEntity.badRequest().build());
+    }
+
+    @PatchMapping(path = "/{orderId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Update order status", description = "Patch order fields (por ejemplo, status → CANCELLED)")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Order updated"),
+        @ApiResponse(responseCode = "404", description = "Order not found"),
+        @ApiResponse(responseCode = "400", description = "Invalid input")
+    })
+    public ResponseEntity<OrderResource> patchOrderStatus(
+            @PathVariable Long orderId,
+            @RequestBody Map<String, String> updates
+    ) {
+        String newStatus = updates.get("status");
+
+        if (!"CANCELLED".equalsIgnoreCase(newStatus))
+            return ResponseEntity.badRequest().build();
+
+        try {
+            orderCommandService.handle(new CancelOrderCommand(orderId));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.notFound().build();
+        }
+
+        var updated = orderQueryService.handle(new GetOrderByIdQuery(orderId))
+                .orElseThrow();
+
+        return ResponseEntity.ok(
+                OrderResourceFromEntityAssembler.toResourceFromEntity(updated)
+        );
     }
 }
