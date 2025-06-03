@@ -1,6 +1,9 @@
 package com.qu3dena.aquaengine.backend.order.interfaces.rest;
 
 import com.qu3dena.aquaengine.backend.order.domain.model.commands.CancelOrderCommand;
+import com.qu3dena.aquaengine.backend.order.domain.model.commands.ConfirmOrderCommand;
+import com.qu3dena.aquaengine.backend.order.domain.model.commands.DeliverOrderCommand;
+import com.qu3dena.aquaengine.backend.order.domain.model.commands.ShipOrderCommand;
 import com.qu3dena.aquaengine.backend.order.domain.model.queries.GetOrderByIdQuery;
 import com.qu3dena.aquaengine.backend.order.domain.model.queries.GetOrdersByUserIdQuery;
 import com.qu3dena.aquaengine.backend.order.domain.services.OrderCommandService;
@@ -84,10 +87,10 @@ public class OrdersController {
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
-    @PatchMapping(path = "/{orderId}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Update order status", description = "Patch order fields (por ejemplo, status → CANCELLED)")
+    @PatchMapping(path = "/{orderId}/cancel", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Cancel order", description = "Updates order status to CANCELLED")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Order updated"),
+        @ApiResponse(responseCode = "200", description = "Order updated to CANCELLED"),
         @ApiResponse(responseCode = "404", description = "Order not found"),
         @ApiResponse(responseCode = "400", description = "Invalid input")
     })
@@ -108,6 +111,90 @@ public class OrdersController {
 
         var updated = orderQueryService.handle(new GetOrderByIdQuery(orderId))
                 .orElseThrow();
+
+        return ResponseEntity.ok(
+                OrderResourceFromEntityAssembler.toResourceFromEntity(updated)
+        );
+    }
+
+    @PatchMapping(path = "/{orderId}/confirm", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Confirm order", description = "Updates order status to CONFIRMED")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Order updated to CONFIRMED"),
+        @ApiResponse(responseCode = "400", description = "Invalid input"),
+        @ApiResponse(responseCode = "404", description = "Order not found")
+    })
+    public ResponseEntity<OrderResource> patchOrderStatusToConfirmed(
+            @PathVariable Long orderId,
+            @RequestBody Map<String, String> updates
+    ) {
+        String newStatus = updates.get("status");
+        if (!"CONFIRMED".equalsIgnoreCase(newStatus))
+            return ResponseEntity.badRequest().build();
+
+        try {
+            orderCommandService.handle(new ConfirmOrderCommand(orderId));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.notFound().build();
+        }
+
+        var updated = orderQueryService.handle(new GetOrderByIdQuery(orderId)).orElseThrow();
+        return ResponseEntity.ok(
+                OrderResourceFromEntityAssembler.toResourceFromEntity(updated)
+        );
+    }
+
+    @PatchMapping(path = "/{orderId}/ship", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Ship order", description = "Updates order status to SHIPPED")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Order updated to SHIPPED"),
+        @ApiResponse(responseCode = "400", description = "Invalid input"),
+        @ApiResponse(responseCode = "404", description = "Order not found")
+    })
+    public ResponseEntity<OrderResource> patchOrderStatusToShipped(
+            @PathVariable Long orderId,
+            @RequestBody Map<String, String> updates
+    ) {
+        String newStatus = updates.get("status");
+
+        if (!"SHIPPED".equalsIgnoreCase(newStatus))
+            return ResponseEntity.badRequest().build();
+
+        try {
+            orderCommandService.handle(new ShipOrderCommand(orderId));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.notFound().build();
+        }
+
+        var updated = orderQueryService.handle(new GetOrderByIdQuery(orderId)).orElseThrow();
+
+        return ResponseEntity.ok(
+                OrderResourceFromEntityAssembler.toResourceFromEntity(updated)
+        );
+    }
+
+    @PatchMapping(path = "/{orderId}/deliver", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Deliver order", description = "Updates order status to DELIVERED")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Order updated to DELIVERED"),
+        @ApiResponse(responseCode = "400", description = "Invalid input"),
+        @ApiResponse(responseCode = "404", description = "Order not found")
+    })
+    public ResponseEntity<OrderResource> patchOrderStatusToDelivered(
+            @PathVariable Long orderId,
+            @RequestBody Map<String, String> updates
+    ) {
+        String newStatus = updates.get("status");
+
+        if (!"DELIVERED".equalsIgnoreCase(newStatus))
+            return ResponseEntity.badRequest().build();
+        try {
+            orderCommandService.handle(new DeliverOrderCommand(orderId));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.notFound().build();
+        }
+
+        var updated = orderQueryService.handle(new GetOrderByIdQuery(orderId)).orElseThrow();
 
         return ResponseEntity.ok(
                 OrderResourceFromEntityAssembler.toResourceFromEntity(updated)
