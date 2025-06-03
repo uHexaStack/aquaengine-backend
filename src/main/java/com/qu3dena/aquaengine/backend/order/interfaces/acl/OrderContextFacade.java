@@ -2,6 +2,7 @@
 package com.qu3dena.aquaengine.backend.order.interfaces.acl;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * OrderContextFacade provides an interface for managing orders in the system.
@@ -188,4 +189,15 @@ public interface OrderContextFacade {
      * @return List of order status names.
      */
     List<String> getAllOrderStatuses();
+
+    /**
+     * Gets a map of order line IDs to their corresponding quantities.
+     * <p>
+     * Returns an empty map if the order does not exist.
+     * </p>
+     *
+     * @param orderId ID of the order.
+     * @return Map of order line IDs to quantities; empty if order does not exist.
+     */
+    Map<Long, Integer> getOrderLines(Long orderId);
 }

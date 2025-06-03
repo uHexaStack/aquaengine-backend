@@ -15,15 +15,13 @@ import com.qu3dena.aquaengine.backend.order.domain.model.valueobjects.ShippingAd
 import com.qu3dena.aquaengine.backend.order.domain.services.OrderCommandService;
 import com.qu3dena.aquaengine.backend.order.domain.services.OrderQueryService;
 import com.qu3dena.aquaengine.backend.order.domain.services.OrderStatusQueryService;
+import com.qu3dena.aquaengine.backend.order.infrastructure.persistence.jpa.repositories.OrderRepository;
 import com.qu3dena.aquaengine.backend.order.interfaces.acl.OrderContextFacade;
 import com.qu3dena.aquaengine.backend.shared.domain.model.valuobjects.Money;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,15 +30,17 @@ public class OrderContextFacadeImpl implements OrderContextFacade {
     private final OrderCommandService orderCommandService;
     private final OrderQueryService orderQueryService;
     private final OrderStatusQueryService orderStatusQueryService;
+    private final OrderRepository orderRepository;
 
     public OrderContextFacadeImpl(
             OrderCommandService orderCommandService,
             OrderQueryService orderQueryService,
-            OrderStatusQueryService orderStatusQueryService
-    ) {
+            OrderStatusQueryService orderStatusQueryService,
+            OrderRepository orderRepository) {
         this.orderCommandService = orderCommandService;
         this.orderQueryService = orderQueryService;
         this.orderStatusQueryService = orderStatusQueryService;
+        this.orderRepository = orderRepository;
     }
 
     /**
@@ -325,6 +325,23 @@ public class OrderContextFacadeImpl implements OrderContextFacade {
                 .map(OrderStatus::getStringStatus)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<Long, Integer> getOrderLines(Long orderId) {
+        var order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+
+        return order.getLines()
+                .stream()
+                .collect(Collectors.toMap(
+                        OrderLine::getProductId,
+                        OrderLine::getQuantity
+                ));
+    }
+
 
     /**
      * Helper method to retrieve an OrderAggregate by ID.
