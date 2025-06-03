@@ -36,19 +36,20 @@ public class OrderAggregate extends AuditableAbstractAggregateRoot<OrderAggregat
     @OneToMany(
             mappedBy = "order",
             cascade = CascadeType.ALL,
-            orphanRemoval = true
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
     )
     private List<OrderLine> lines = new ArrayList<>();
 
     @Embedded
     private Money total;
 
-    public static OrderAggregate create(CreateOrderCommand command) {
+    public static OrderAggregate create(CreateOrderCommand command, OrderStatus status) {
 
         OrderAggregate order = new OrderAggregate();
 
         order.setUserId(command.userId());
-        order.setStatus(OrderStatus.getDefaultStatus());
+        order.setStatus(status);
         order.setShippingAddress(command.shippingAddress());
 
         for (CreateOrderCommand.Line line : command.lines()) {
@@ -78,9 +79,8 @@ public class OrderAggregate extends AuditableAbstractAggregateRoot<OrderAggregat
         if (line == null)
             throw new IllegalArgumentException("Order line cannot be null");
 
-        this.lines.add(line);
-
         line.setOrder(this);
+        this.lines.add(line);
     }
 
     private void removeLine(OrderLine line) {
