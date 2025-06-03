@@ -23,7 +23,7 @@ import static java.math.BigDecimal.ZERO;
 @EqualsAndHashCode(callSuper = true)
 public class OrderAggregate extends AuditableAbstractAggregateRoot<OrderAggregate> {
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private Long userId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
