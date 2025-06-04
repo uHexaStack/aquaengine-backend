@@ -21,6 +21,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * REST controller for managing payment operations.
+ * <p>
+ * Exposes endpoints for creating, retrieving, and refunding payments.
+ * </p>
+ */
 @RestController
 @RequestMapping(value = "/api/v1/payments", produces = MediaType.APPLICATION_JSON_VALUE)
 @Tag(name = "Payments", description = "Payment Management Endpoints")
@@ -29,11 +35,27 @@ public class PaymentsController {
     private final PaymentCommandService paymentCommandService;
     private final PaymentQueryService paymentQueryService;
 
+    /**
+     * Constructs a new PaymentsController with required services.
+     *
+     * @param paymentCommandService the service handling payment commands
+     * @param paymentQueryService   the service handling payment queries
+     */
     public PaymentsController(PaymentCommandService paymentCommandService, PaymentQueryService paymentQueryService) {
         this.paymentCommandService = paymentCommandService;
         this.paymentQueryService = paymentQueryService;
     }
 
+    /**
+     * Processes a new payment.
+     * <p>
+     * Converts the provided resource into a command, handles the payment processing,
+     * and returns the created payment resource.
+     * </p>
+     *
+     * @param resource the resource representing the payment creation data
+     * @return a ResponseEntity containing the created PaymentResource or an error status
+     */
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Process a new payment", description = "Processes a payment for a given order.")
     @ApiResponses(value = {
@@ -48,13 +70,20 @@ public class PaymentsController {
             return ResponseEntity.badRequest().build();
 
         var paymentEntity = maybePayment.get();
-
-        var paymentResource = PaymentResourceFromEntityAssembler
-                .toResourceFromEntity(paymentEntity);
+        var paymentResource = PaymentResourceFromEntityAssembler.toResourceFromEntity(paymentEntity);
 
         return new ResponseEntity<>(paymentResource, HttpStatus.CREATED);
     }
 
+    /**
+     * Retrieves a payment by its ID.
+     * <p>
+     * Looks up the payment using the provided ID and returns the corresponding resource.
+     * </p>
+     *
+     * @param paymentId the unique identifier of the payment
+     * @return a ResponseEntity containing the PaymentResource or not found status
+     */
     @GetMapping("/{paymentId}")
     @Operation(summary = "Get payment by ID", description = "Retrieve a single payment by its ID.")
     @ApiResponses(value = {
@@ -67,12 +96,20 @@ public class PaymentsController {
         if (maybePayment.isEmpty())
             return ResponseEntity.notFound().build();
 
-        var resource = PaymentResourceFromEntityAssembler
-                .toResourceFromEntity(maybePayment.get());
+        var resource = PaymentResourceFromEntityAssembler.toResourceFromEntity(maybePayment.get());
 
         return ResponseEntity.ok(resource);
     }
 
+    /**
+     * Retrieves all payments associated with a specific order.
+     * <p>
+     * Uses the order ID provided as a request parameter to fetch all payments.
+     * </p>
+     *
+     * @param orderId the unique identifier of the order
+     * @return a ResponseEntity containing a list of PaymentResources or not found status
+     */
     @GetMapping
     @Operation(summary = "Get payments by order ID", description = "Retrieve all payments for a given order.")
     @ApiResponses(value = {
@@ -92,6 +129,16 @@ public class PaymentsController {
         return ResponseEntity.ok(resources);
     }
 
+    /**
+     * Refunds an existing payment.
+     * <p>
+     * Processes a refund command for the payment with the given ID.
+     * Depending on the outcome, returns the updated payment resource or an error response.
+     * </p>
+     *
+     * @param paymentId the unique identifier of the payment to refund
+     * @return a ResponseEntity containing the updated PaymentResource or an error status
+     */
     @PatchMapping("/{paymentId}/refund")
     @Operation(summary = "Refund a payment", description = "Refunds an existing payment.")
     @ApiResponses(value = {
@@ -101,8 +148,7 @@ public class PaymentsController {
     })
     public ResponseEntity<PaymentResource> refundPayment(@PathVariable Long paymentId) {
         try {
-            var result = paymentCommandService
-                    .handle(new RefundPaymentCommand(paymentId));
+            var result = paymentCommandService.handle(new RefundPaymentCommand(paymentId));
 
             if (result.isEmpty())
                 return ResponseEntity.notFound().build();
@@ -116,8 +162,7 @@ public class PaymentsController {
         if (maybeUpdated.isEmpty())
             return ResponseEntity.notFound().build();
 
-        var resource = PaymentResourceFromEntityAssembler
-                .toResourceFromEntity(maybeUpdated.get());
+        var resource = PaymentResourceFromEntityAssembler.toResourceFromEntity(maybeUpdated.get());
 
         return ResponseEntity.ok(resource);
     }
