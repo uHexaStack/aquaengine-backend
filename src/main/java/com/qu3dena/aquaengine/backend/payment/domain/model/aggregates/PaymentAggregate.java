@@ -16,10 +16,6 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.Optional;
 
-/**
- * Represents the aggregate root for a payment in the domain.
- * Contains data and operations for processing and refunding a payment.
- */
 @Data
 @Entity
 @NoArgsConstructor
@@ -43,15 +39,6 @@ public class PaymentAggregate extends AuditableAbstractAggregateRoot<PaymentAggr
     @Column(name = "transaction_date", nullable = false)
     private Instant transactionDate;
 
-    /**
-     * Constructs a PaymentAggregate with the specified details.
-     *
-     * @param orderId         the unique order identifier
-     * @param amount          the monetary amount of the payment
-     * @param status          the current status of the payment
-     * @param paymentMethod   the payment method used for the transaction
-     * @param transactionDate the date and time when the transaction occurred
-     */
     public PaymentAggregate(
             Long orderId,
             Money amount,
@@ -66,13 +53,6 @@ public class PaymentAggregate extends AuditableAbstractAggregateRoot<PaymentAggr
         this.transactionDate = transactionDate;
     }
 
-    /**
-     * Creates a new instance of PaymentAggregate from the given command and pending status.
-     *
-     * @param command       the command containing payment creation details
-     * @param pendingStatus the initial pending status of the payment
-     * @return a new PaymentAggregate instance
-     */
     public static PaymentAggregate create(ProcessPaymentCommand command, PaymentStatus pendingStatus) {
         return new PaymentAggregate(
                 command.orderId(),
@@ -83,28 +63,14 @@ public class PaymentAggregate extends AuditableAbstractAggregateRoot<PaymentAggr
         );
     }
 
-    /**
-     * Processes the payment.
-     * If the payment amount is less than or equal to zero, the payment fails.
-     *
-     * @return an Optional containing PaymentProcessedEvent if processing succeeds; otherwise, an empty Optional
-     */
-    public Optional<PaymentProcessedEvent> process() {
+    public Optional<PaymentStatusType> process() {
         if (amount.amount().signum() <= 0) {
-            this.status = new PaymentStatus(PaymentStatusType.FAILED);
-            return Optional.empty();
+            return Optional.of(PaymentStatusType.FAILED);
         }
-        this.status = new PaymentStatus(PaymentStatusType.COMPLETED);
-        return Optional.of(new PaymentProcessedEvent(this.getId(), this.orderId));
+        return Optional.of(PaymentStatusType.COMPLETED);
     }
 
-    /**
-     * Refunds the payment by updating its status.
-     *
-     * @return a PaymentRefundedEvent representing the refund event
-     */
-    public PaymentRefundedEvent refund() {
-        this.status = new PaymentStatus(PaymentStatusType.REFUNDED);
-        return new PaymentRefundedEvent(this.getId(), this.orderId);
+    public PaymentStatusType refund() {
+        return PaymentStatusType.REFUNDED;
     }
 }
