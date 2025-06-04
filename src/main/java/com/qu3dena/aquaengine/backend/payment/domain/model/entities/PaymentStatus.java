@@ -1,18 +1,16 @@
 package com.qu3dena.aquaengine.backend.payment.domain.model.entities;
 
 import com.qu3dena.aquaengine.backend.payment.domain.model.valueobjects.PaymentStatusType;
-import com.qu3dena.aquaengine.backend.shared.domain.model.entities.AuditableModel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
  * Represents the status of a payment.
  * <p>
- * This entity is responsible for tracking the current payment status.
- * It extends the {@code AuditableModel} to include auditing information.
+ * This entity tracks the current status of a payment and extends the AuditableModel
+ * to include created and modified auditing fields.
  * </p>
  */
 @Data
@@ -20,8 +18,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "payment_statuses")
-@EqualsAndHashCode(callSuper = true)
-public class PaymentStatus extends AuditableModel {
+public class PaymentStatus {
 
     /**
      * The unique identifier of the payment status.
@@ -31,14 +28,17 @@ public class PaymentStatus extends AuditableModel {
     private Long id;
 
     /**
-     * The payment status type.
+     * The type of the payment status.
+     * <p>
+     * It is stored as a string value in the database and must be unique.
+     * </p>
      */
     @Enumerated(EnumType.STRING)
     @Column(length = 20, unique = true, nullable = false)
     private PaymentStatusType name;
 
     /**
-     * Constructs a new {@code PaymentStatus} with the specified status type.
+     * Constructs a new PaymentStatus with the specified status type.
      *
      * @param name the payment status type
      */
@@ -49,18 +49,18 @@ public class PaymentStatus extends AuditableModel {
     /**
      * Returns the default payment status.
      *
-     * @return a new {@code PaymentStatus} with the default status (PENDING)
+     * @return a new PaymentStatus instance with the default type (PENDING)
      */
     public static PaymentStatus getDefaultStatus() {
         return new PaymentStatus(PaymentStatusType.PENDING);
     }
 
     /**
-     * Converts a string value to a {@code PaymentStatus} entity.
+     * Converts a string value to a PaymentStatus entity.
      *
      * @param name the name of the payment status
-     * @return a new {@code PaymentStatus} created from the given name
-     * @throws IllegalArgumentException if the name does not match any {@code PaymentStatusType}
+     * @return a new PaymentStatus instance created from the given name
+     * @throws IllegalArgumentException if the provided name does not match any PaymentStatusType
      */
     public static PaymentStatus toPaymentStatusFromName(String name) {
         return new PaymentStatus(PaymentStatusType.valueOf(name));
@@ -69,18 +69,18 @@ public class PaymentStatus extends AuditableModel {
     /**
      * Returns the string representation of the payment status type.
      *
-     * @return the name of the payment status type
+     * @return the name of the payment status type as a string
      */
     public String getStringStatus() {
         return this.name.name();
     }
 
     /**
-     * Creates a new {@code PaymentStatus} from a string value.
+     * Creates a new PaymentStatus from a string value.
      *
      * @param name the name of the payment status
-     * @return a new {@code PaymentStatus} created from the given name
-     * @throws IllegalArgumentException if the name does not match any {@code PaymentStatusType}
+     * @return a new PaymentStatus instance created from the given string
+     * @throws IllegalArgumentException if the provided name does not match any PaymentStatusType
      */
     public static PaymentStatus create(String name) {
         return new PaymentStatus(PaymentStatusType.valueOf(name));
