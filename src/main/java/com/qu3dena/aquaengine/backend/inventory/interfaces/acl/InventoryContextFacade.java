@@ -16,5 +16,5 @@ public interface InventoryContextFacade {
 
     int getAvailableQuantity(String name);
 
-    List<String> getItemsWithLowStock(int threshold);
+    List<String> getItemsWithLowStock(String name);
 }

@@ -2,6 +2,7 @@ package com.qu3dena.aquaengine.backend.inventory.application.internal.queryservi
 
 import com.qu3dena.aquaengine.backend.inventory.domain.model.aggregate.InventoryItemAggregate;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByNameQuery;
+import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemByNameQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemsQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryQueryService;
 import com.qu3dena.aquaengine.backend.inventory.infrastructure.persistence.jpa.repositories.InventoryRepository;
@@ -42,7 +43,16 @@ public class InventoryQueryServiceImpl implements InventoryQueryService {
      * {@inheritDoc}
      */
     @Override
+    public Optional<InventoryItemAggregate> handle(GetLowStockItemByNameQuery query) {
+        return inventoryRepository.findByName(query.name())
+                .filter(item -> item.getQuantityOnHand() <= item.getThreshold());
+    }
+
+    @Override
     public List<InventoryItemAggregate> handle(GetLowStockItemsQuery query) {
-        return inventoryRepository.findByQuantityOnHandLessThanEqual(query.threshold());
+        return inventoryRepository.findAll()
+                .stream()
+                .filter(item -> item.getQuantityOnHand() <= item.getThreshold())
+                .toList();
     }
 }

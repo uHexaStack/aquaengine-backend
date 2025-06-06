@@ -4,13 +4,16 @@ import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.AdjustInve
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.ReleaseInventoryCommand;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.ReserveInventoryCommand;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByNameQuery;
+import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemByNameQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemsQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryCommandService;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryQueryService;
 import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.resources.CreateInventoryItemResource;
+import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.resources.InventoryItemLowStockResource;
 import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.resources.InventoryItemQuantityResource;
 import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.resources.InventoryItemResource;
 import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.transform.CreateInventoryItemCommandFromResourceAssembler;
+import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.transform.InventoryItemLowStockResourceFromEntityAssembler;
 import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.transform.InventoryItemQuantityResourceFromEntityAssembler;
 import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.transform.InventoryItemResourceFromEntityAssembler;
 import io.swagger.v3.oas.annotations.Operation;
@@ -136,17 +139,44 @@ public class InventoriesController {
         return ResponseEntity.ok(resource);
     }
 
-    @GetMapping("/low-stock")
-    @Operation(summary = "Get items with low stock", description = "List inventory items with stock \\<= threshold")
+    @GetMapping("/{name}/low-stock")
+    @Operation(summary = "Get item with low stock", description = "Get item with low stock by name")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Low-stock list returned")
+            @ApiResponse(responseCode = "200", description = "Low stock item found"),
+            @ApiResponse(responseCode = "404", description = "Low stock item not found"),
     })
-    public ResponseEntity<List<InventoryItemResource>> getLowStockItems(@RequestParam int threshold) {
-        var query = new GetLowStockItemsQuery(threshold);
+    public ResponseEntity<InventoryItemLowStockResource> getLowStockItem(
+            @PathVariable String name
+    ) {
+        var query = new GetLowStockItemByNameQuery(name);
+        var item = inventoryQueryService.handle(query);
+
+        if (item.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        var resource = InventoryItemLowStockResourceFromEntityAssembler
+                .toResourceFromEntity(item.get());
+
+        return ResponseEntity.ok(resource);
+    }
+
+    @GetMapping("/low-stock")
+    @Operation(summary = "Get items with low stock", description = "Get item list with low stock")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Low stock items found"),
+            @ApiResponse(responseCode = "404", description = "Low stock items not found"),
+    })
+    public ResponseEntity<List<InventoryItemLowStockResource>> getLowStockItems() {
+        var query = new GetLowStockItemsQuery();
         var items = inventoryQueryService.handle(query);
 
+        if (items.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
         var resources = items.stream()
-                .map(InventoryItemResourceFromEntityAssembler::toResourceFromEntity)
+                .map(InventoryItemLowStockResourceFromEntityAssembler::toResourceFromEntity)
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(resources);

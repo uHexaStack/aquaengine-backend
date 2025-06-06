@@ -2,6 +2,7 @@ package com.qu3dena.aquaengine.backend.inventory.domain.services;
 
 import com.qu3dena.aquaengine.backend.inventory.domain.model.aggregate.InventoryItemAggregate;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByNameQuery;
+import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemByNameQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemsQuery;
 
 import java.util.List;
@@ -12,6 +13,8 @@ public interface InventoryQueryService {
 
     Optional<InventoryItemAggregate> handle(GetInventoryByNameQuery query);
 
+
+    Optional<InventoryItemAggregate> handle(GetLowStockItemByNameQuery query);
 
     List<InventoryItemAggregate> handle(GetLowStockItemsQuery query);
 }

@@ -5,7 +5,7 @@ import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.AdjustInve
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.CreateInventoryItemCommand;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.ReserveInventoryCommand;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByNameQuery;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemsQuery;
+import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemByNameQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryCommandService;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryQueryService;
 import com.qu3dena.aquaengine.backend.inventory.interfaces.acl.InventoryContextFacade;
@@ -79,9 +79,8 @@ public class InventoryContextFacadeImpl implements InventoryContextFacade {
     }
 
     @Override
-    public List<String> getItemsWithLowStock(int threshold) {
-        var query = new GetLowStockItemsQuery(threshold);
-
+    public List<String> getItemsWithLowStock(String name) {
+        var query = new GetLowStockItemByNameQuery(name);
         var items = inventoryQueryService.handle(query);
 
         return items.stream()
