@@ -77,7 +77,7 @@ public class InventoriesController {
         return getInventoryItemResponse(itemId);
     }
 
-    @PostMapping("/reserve")
+    @PostMapping("/{itemId}/reserve")
     @Operation(summary = "Reserve stock", description = "Reserve stock for a product (used by orders)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Stock reserved"),
@@ -85,7 +85,7 @@ public class InventoriesController {
             @ApiResponse(responseCode = "404", description = "Item not found")
     })
     public ResponseEntity<InventoryItemResource> reserveStock(
-            @RequestParam Long itemId,
+            @PathVariable Long itemId,
             @RequestParam int quantity
     ) {
         var command = new ReserveInventoryCommand(itemId, quantity);
@@ -97,7 +97,7 @@ public class InventoriesController {
         return getInventoryItemResponse(itemId);
     }
 
-    @PostMapping("/release")
+    @PostMapping("/{itemId}/release")
     @Operation(summary = "Release stock", description = "Release previously reserved stock")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Stock released"),
@@ -105,7 +105,7 @@ public class InventoriesController {
             @ApiResponse(responseCode = "404", description = "Item not found")
     })
     public ResponseEntity<InventoryItemResource> releaseStock(
-            @RequestParam Long itemId,
+            @PathVariable Long itemId,
             @RequestParam int quantity
     ) {
         var command = new ReleaseInventoryCommand(itemId, quantity);
