@@ -9,12 +9,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Implementation of {@link UserDetails} for Spring Security.
  * <p>
- *     Encapsulates user information such as username, password, authorities, and account status flags.
- *     Used by Spring Security for authentication and authorization.
+ * Encapsulates user information such as username, password, authorities, and account status flags.
+ * Used by Spring Security for authentication and authorization.
  * </p>
  */
 @Getter
@@ -76,19 +77,19 @@ public class UserDetailsImpl implements UserDetails {
         this.enabled = true;
     }
 
+
     /**
-     * Builds a {@code UserDetailsImpl} instance from a {@link UserAggregate} domain object.
-     * Extracts the username, password, and roles as authorities.
+     * Builds a {@code UserDetailsImpl} instance from the supplied {@code UserAggregate}.
      *
-     * @param user the user aggregate domain object
+     * <p>
+     * Extracts the user's role and converts it to a {@code SimpleGrantedAuthority} to set up the user's authorities.
+     * </p>
+     *
+     * @param user the user aggregate containing user details
      * @return a new {@code UserDetailsImpl} instance
      */
     public static UserDetailsImpl build(UserAggregate user) {
-        var authorities = user.getRoles().stream()
-                .map(role -> role.getName().name())
-                .map(SimpleGrantedAuthority::new)
-                .toList();
-
+        var authorities = List.of(new SimpleGrantedAuthority(user.getRole().getName().name()));
         return new UserDetailsImpl(
                 user.getUsername(),
                 user.getPassword(),

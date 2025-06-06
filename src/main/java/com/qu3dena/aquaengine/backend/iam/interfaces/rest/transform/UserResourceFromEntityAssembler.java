@@ -18,6 +18,7 @@ public class UserResourceFromEntityAssembler {
         return new UserResource(
                 entity.getId(),
                 entity.getUsername(),
-                RoleStringSetFromEntitySetAssembler.toResourceSetFromEntitySet(entity.getRoles()));
+                entity.getRoleName()
+        );
     }
 }

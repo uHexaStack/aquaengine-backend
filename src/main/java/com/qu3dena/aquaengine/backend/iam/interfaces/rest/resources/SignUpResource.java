@@ -10,12 +10,12 @@ import java.util.Set;
  *
  * @param username the username of the user to be registered
  * @param password the password of the user to be registered
- * @param roles    the set of roles assigned to the user
+ * @param role    the role assigned to the user
  */
 public record SignUpResource(
         String username,
         String password,
-        Set<String> roles,
+        String role,
         String firstName,
         String lastName,
         String contactEmail,

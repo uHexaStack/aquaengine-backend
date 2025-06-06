@@ -6,7 +6,6 @@ import com.qu3dena.aquaengine.backend.iam.domain.model.aggregates.UserAggregate;
 import com.qu3dena.aquaengine.backend.iam.domain.model.commands.SignInCommand;
 import com.qu3dena.aquaengine.backend.iam.domain.model.commands.SignUpCommand;
 import com.qu3dena.aquaengine.backend.iam.domain.model.events.UserRegisteredEvent;
-import com.qu3dena.aquaengine.backend.iam.domain.model.valueobjects.Roles;
 import com.qu3dena.aquaengine.backend.iam.domain.services.UserCommandService;
 import com.qu3dena.aquaengine.backend.iam.infrastructure.persistence.jpa.repositories.RoleRepository;
 import com.qu3dena.aquaengine.backend.iam.infrastructure.persistence.jpa.repositories.UserRepository;
@@ -16,13 +15,13 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of the user command service.
  * <p>
- * Manages user registration and authentication, including role validation,
- * secure password storage, and authentication token generation.
+ * This service handles user registration and authentication, ensuring role validation,
+ * secure password storage, and authentication token generation. The method documentation below
+ * utilizes the {@inheritDoc} tag to inherit descriptions from the interface.
  * </p>
  */
 @Service
@@ -32,7 +31,6 @@ public class UserCommandServiceImpl implements UserCommandService {
     private final HashingService hashingService;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-
     private final ApplicationEventPublisher events;
 
     /**
@@ -42,6 +40,7 @@ public class UserCommandServiceImpl implements UserCommandService {
      * @param roleRepository repository for role operations
      * @param tokenService   service for token generation
      * @param hashingService service for password validation and hashing
+     * @param events         publisher for application events
      */
     public UserCommandServiceImpl(UserRepository userRepository, RoleRepository roleRepository, TokenService tokenService, HashingService hashingService, ApplicationEventPublisher events) {
         this.events = events;
@@ -53,14 +52,6 @@ public class UserCommandServiceImpl implements UserCommandService {
 
     /**
      * {@inheritDoc}
-     * <p>
-     * Registers a new user, validating username uniqueness and role existence.
-     * Stores the password and associated roles, and persists the user in the database.
-     * </p>
-     *
-     * @param command user registration command
-     * @return an {@code Optional} with the registered user if the operation was successful
-     * @throws RuntimeException if the username already exists or any role is not found
      */
     @Transactional
     @Override
@@ -71,12 +62,10 @@ public class UserCommandServiceImpl implements UserCommandService {
 
         var encoded = hashingService.encode(command.password());
 
-        var roles = command.roles().stream()
-                .map(role -> roleRepository.findByName(role.getName())
-                        .orElseThrow(() -> new RuntimeException("Role not found"))).collect(Collectors.toSet());
+        var roleEntity = roleRepository.findByName(command.role().getName())
+                .orElseThrow(() -> new RuntimeException("Role not found"));
 
-
-        var user = UserAggregate.create(command.username(), encoded, roles);
+        var user = UserAggregate.create(command.username(), encoded, roleEntity);
 
         var saved = userRepository.save(user);
 
@@ -101,14 +90,6 @@ public class UserCommandServiceImpl implements UserCommandService {
 
     /**
      * {@inheritDoc}
-     * <p>
-     * Authenticates a user by verifying existence and password validity.
-     * If successful, generates and returns an authentication token.
-     * </p>
-     *
-     * @param command sign-in command
-     * @return an {@code Optional} with the user and token pair if authentication is successful
-     * @throws RuntimeException if the user does not exist or the password is invalid
      */
     @Override
     public Optional<ImmutablePair<UserAggregate, String>> handle(SignInCommand command) {

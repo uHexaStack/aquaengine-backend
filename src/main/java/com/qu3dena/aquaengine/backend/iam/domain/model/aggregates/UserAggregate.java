@@ -21,43 +21,26 @@ public class UserAggregate extends AuditableAbstractAggregateRoot<UserAggregate>
     @Column(nullable = false)
     private String password;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Role> roles;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
 
     public UserAggregate() {
-        this.roles = new HashSet<>();
+        this.role = new Role();
     }
 
-    public UserAggregate(String username, String password) {
+    public UserAggregate(String username, String password, Role role) {
         this();
         this.username = username;
         this.password = password;
-        this.roles = new HashSet<>();
+        this.role = role;
     }
 
-    public UserAggregate(String username, String password, Set<Role> roles) {
-        this();
-        this.username = username;
-        this.password = password;
-        this.addRoles(roles);
+    public static UserAggregate create(String username, String password, Role role) {
+        return new UserAggregate(username, password, role);
     }
 
-    public UserAggregate addRole(Role role) {
-        this.roles.add(role);
-        return this;
-    }
-
-    public void addRoles(Set<Role> roles) {
-        var validatedRoles = Role.validateRoles(roles);
-        this.roles.addAll(validatedRoles);
-    }
-
-    public static UserAggregate create(String username, String password, Set<Role> roles) {
-        return new UserAggregate(username, password, roles);
+    public String getRoleName() {
+        return role.getStringName();
     }
 }

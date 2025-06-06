@@ -3,12 +3,10 @@ package com.qu3dena.aquaengine.backend.iam.domain.model.commands;
 
 import com.qu3dena.aquaengine.backend.iam.domain.model.entities.Role;
 
-import java.util.Set;
-
 public record SignUpCommand(
         String username,
         String password,
-        Set<Role> roles,
+        Role role,
         String firstName,
         String lastName,
         String contactEmail,
