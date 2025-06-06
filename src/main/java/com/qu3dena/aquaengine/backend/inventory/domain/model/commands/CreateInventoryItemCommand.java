@@ -5,7 +5,7 @@ import com.qu3dena.aquaengine.backend.shared.domain.model.valuobjects.Money;
 public record CreateInventoryItemCommand(
         String name,
         Money price,
-        int initialQuantity,
+        int quantityOnHand,
         int threshold
 ) {
 
@@ -16,7 +16,7 @@ public record CreateInventoryItemCommand(
         if (price == null || price.amount().signum() < 0)
             throw new IllegalArgumentException("Invalid price");
 
-        if (initialQuantity < 0)
+        if (quantityOnHand < 0)
             throw new IllegalArgumentException("Initial quantity cannot be negative");
 
         if (threshold < 0)

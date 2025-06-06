@@ -46,13 +46,13 @@ public class InventoryItemAggregate extends AuditableAbstractAggregateRoot<Inven
 
     public static InventoryItemAggregate create(CreateInventoryItemCommand command) {
 
-        if (command.initialQuantity() < 0)
+        if (command.quantityOnHand() < 0)
             throw new IllegalArgumentException("Available quantity cannot be negative");
 
         return new InventoryItemAggregate(
                 command.name(),
                 command.price(),
-                new Quantity(command.initialQuantity()),
+                new Quantity(command.quantityOnHand()),
                 command.threshold()
         );
     }
