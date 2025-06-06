@@ -6,11 +6,9 @@ import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.ReleaseInv
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.ReserveInventoryCommand;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.events.StockLowEvent;
 import com.qu3dena.aquaengine.backend.shared.domain.model.aggregates.AuditableAbstractAggregateRoot;
+import com.qu3dena.aquaengine.backend.shared.domain.model.valuobjects.Money;
 import com.qu3dena.aquaengine.backend.shared.domain.model.valuobjects.Quantity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -24,41 +22,59 @@ import java.util.Optional;
 @EqualsAndHashCode(callSuper = true)
 public class InventoryItemAggregate extends AuditableAbstractAggregateRoot<InventoryItemAggregate> {
 
-    @Column(name = "product_id", nullable = false, unique = true)
-    private Long productId;
+    @Column(nullable = false)
+    private String name;
 
     @Embedded
-    private Quantity availableQuantity;
+    private Money price;
 
-    public InventoryItemAggregate(Long productId, Quantity availableQuantity) {
-        this.productId = productId;
-        this.availableQuantity = availableQuantity;
+    @Embedded
+    @AttributeOverrides(
+            @AttributeOverride(name = "amount", column = @Column(name = "quantity_on_hand", nullable = false))
+    )
+    private Quantity quantityOnHand;
+
+    @Column(nullable = false)
+    private int threshold;
+
+    public InventoryItemAggregate(String name, Money price, Quantity quantityOnHand, int threshold) {
+        this.name = name;
+        this.price = price;
+        this.quantityOnHand = quantityOnHand;
+        this.threshold = threshold;
     }
 
     public static InventoryItemAggregate create(CreateInventoryItemCommand command) {
-        if (command.productId() == null)
-            throw new IllegalArgumentException("Product id cannot be null");
 
         if (command.initialQuantity() < 0)
             throw new IllegalArgumentException("Available quantity cannot be negative");
 
         return new InventoryItemAggregate(
-                command.productId(),
-                new Quantity(command.initialQuantity())
+                command.name(),
+                command.price(),
+                new Quantity(command.initialQuantity()),
+                command.threshold()
         );
     }
 
+    /**
+     * Adjusts the stock for the inventory item.
+     *
+     * @param command the command containing the adjustment amount
+     * @return an Optional containing a StockLowEvent if the stock falls below the threshold, otherwise an empty Optional
+     * @throws IllegalArgumentException if the new quantity is negative
+     */
     public Optional<StockLowEvent> adjustStock(AdjustInventoryCommand command) {
 
-        var newQuantity = availableQuantity.amount() + command.adjustBy();
+        var newQuantity = quantityOnHand.amount() + command.adjustBy();
 
         if (newQuantity < 0)
             throw new IllegalArgumentException("Insufficient stock to adjust");
 
-        availableQuantity = new Quantity(newQuantity);
+        quantityOnHand = new Quantity(newQuantity);
 
-        if (availableQuantity.amount() <= 5)
-            return Optional.of(new StockLowEvent(this.getId(), productId, availableQuantity.amount()));
+        if (quantityOnHand.amount() <= 5)
+            return Optional.of(new StockLowEvent(this.getId(), name, quantityOnHand.amount()));
 
         return Optional.empty();
     }
@@ -70,17 +86,17 @@ public class InventoryItemAggregate extends AuditableAbstractAggregateRoot<Inven
         if (quantity < 0)
             throw new IllegalArgumentException("Quantity to reserve must be > 0");
 
-        var available = availableQuantity.amount();
+        var available = quantityOnHand.amount();
 
         if (available < quantity)
-            throw new IllegalArgumentException("Not enough stock to reserve for product " + productId);
+            throw new IllegalArgumentException("Not enough stock to reserve for product " + name);
 
         var newQuantity = available - quantity;
 
-        availableQuantity = new Quantity(newQuantity);
+        quantityOnHand = new Quantity(newQuantity);
 
         if (newQuantity <= 5)
-            return Optional.of(new StockLowEvent(this.getId(), productId, newQuantity));
+            return Optional.of(new StockLowEvent(this.getId(), name, newQuantity));
 
         return Optional.empty();
     }
@@ -91,12 +107,12 @@ public class InventoryItemAggregate extends AuditableAbstractAggregateRoot<Inven
         if (quantity <= 0)
             throw new IllegalArgumentException("Quantity to release must be > 0");
 
-        var newQuantity = this.availableQuantity.amount() + quantity;
+        var newQuantity = this.quantityOnHand.amount() + quantity;
 
-        this.availableQuantity = new Quantity(newQuantity);
+        this.quantityOnHand = new Quantity(newQuantity);
     }
 
-    public int getAvailableQuantity() {
-        return availableQuantity.amount();
+    public int getQuantityOnHand() {
+        return quantityOnHand.amount();
     }
 }

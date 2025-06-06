@@ -1,14 +1,25 @@
 package com.qu3dena.aquaengine.backend.inventory.domain.model.commands;
 
-public record CreateInventoryItemCommand(Long productId, int initialQuantity) {
+import com.qu3dena.aquaengine.backend.shared.domain.model.valuobjects.Money;
+
+public record CreateInventoryItemCommand(
+        String name,
+        Money price,
+        int initialQuantity,
+        int threshold
+) {
 
     public CreateInventoryItemCommand {
-        if (productId == null || productId <= 0) {
-            throw new IllegalArgumentException("ProductId cannot be null");
-        }
+        if (name == null || name.isBlank())
+            throw new IllegalArgumentException("Invalid name");
 
-        if (initialQuantity < 0) {
-            throw new IllegalArgumentException("Initial quantity must be >= 0.");
-        }
+        if (price == null || price.amount().signum() < 0)
+            throw new IllegalArgumentException("Invalid price");
+
+        if (initialQuantity < 0)
+            throw new IllegalArgumentException("Initial quantity cannot be negative");
+
+        if (threshold < 0)
+            throw new IllegalArgumentException("Threshold cannot be negative");
     }
 }

@@ -4,12 +4,13 @@ import com.qu3dena.aquaengine.backend.inventory.domain.model.aggregate.Inventory
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.AdjustInventoryCommand;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.CreateInventoryItemCommand;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.ReserveInventoryCommand;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByProductIdQuery;
+import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByNameQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemsQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryCommandService;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryQueryService;
 import com.qu3dena.aquaengine.backend.inventory.interfaces.acl.InventoryContextFacade;
 import com.qu3dena.aquaengine.backend.shared.domain.model.aggregates.AuditableAbstractAggregateRoot;
+import com.qu3dena.aquaengine.backend.shared.domain.model.valuobjects.Money;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,10 +26,9 @@ public class InventoryContextFacadeImpl implements InventoryContextFacade {
         this.inventoryQueryService = inventoryQueryService;
     }
 
-
     @Override
-    public Long createInventoryItem(Long productId, int initialQuantity) {
-        var command = new CreateInventoryItemCommand(productId, initialQuantity);
+    public Long createInventoryItem(String name, Money price, int initialQuantity, int threshold) {
+        var command = new CreateInventoryItemCommand(name, price, initialQuantity, threshold);
 
         return inventoryCommandService.handle(command)
                 .map(AuditableAbstractAggregateRoot::getId)
@@ -48,9 +48,9 @@ public class InventoryContextFacadeImpl implements InventoryContextFacade {
     }
 
     @Override
-    public boolean reserveStock(Long productId, int quantity) {
+    public boolean reserveStock(Long itemId, int quantity) {
         try {
-            var command = new ReserveInventoryCommand(productId, quantity);
+            var command = new ReserveInventoryCommand(itemId, quantity);
             inventoryCommandService.handle(command);
             return true;
         } catch (Exception e) {
@@ -59,9 +59,9 @@ public class InventoryContextFacadeImpl implements InventoryContextFacade {
     }
 
     @Override
-    public boolean releaseStock(Long productId, int quantity) {
+    public boolean releaseStock(Long itemId, int quantity) {
         try {
-            var command = new ReserveInventoryCommand(productId, -quantity);
+            var command = new ReserveInventoryCommand(itemId, -quantity);
             inventoryCommandService.handle(command);
             return true;
         } catch (Exception e) {
@@ -70,22 +70,22 @@ public class InventoryContextFacadeImpl implements InventoryContextFacade {
     }
 
     @Override
-    public int getAvailableQuantity(Long productId) {
-        var query = new GetInventoryByProductIdQuery(productId);
+    public int getAvailableQuantity(String name) {
+        var query = new GetInventoryByNameQuery(name);
 
         var maybe = inventoryQueryService.handle(query);
 
-        return maybe.map(InventoryItemAggregate::getAvailableQuantity).orElse(-1);
+        return maybe.map(InventoryItemAggregate::getQuantityOnHand).orElse(-1);
     }
 
     @Override
-    public List<Long> getProductsWithLowStock(int threshold) {
+    public List<String> getItemsWithLowStock(int threshold) {
         var query = new GetLowStockItemsQuery(threshold);
 
         var items = inventoryQueryService.handle(query);
 
         return items.stream()
-                .map(InventoryItemAggregate::getProductId)
+                .map(InventoryItemAggregate::getName)
                 .toList();
     }
 }

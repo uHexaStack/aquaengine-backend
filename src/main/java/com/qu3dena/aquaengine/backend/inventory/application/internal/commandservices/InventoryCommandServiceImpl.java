@@ -41,10 +41,10 @@ public class InventoryCommandServiceImpl implements InventoryCommandService {
      */
     @Override
     public Optional<InventoryItemAggregate> handle(CreateInventoryItemCommand command) {
-        var exists = inventoryRepository.findByProductId(command.productId());
+        var exists = inventoryRepository.findByName(command.name());
 
         if (exists.isPresent())
-            throw new RuntimeException("Inventory item for product " + command.productId() + " already exists");
+            throw new RuntimeException("Inventory item for product " + command.name() + " already exists");
 
         var item = InventoryItemAggregate.create(command);
 
@@ -77,8 +77,8 @@ public class InventoryCommandServiceImpl implements InventoryCommandService {
     @Override
     @Transactional
     public Optional<StockLowEvent> handle(ReserveInventoryCommand command) {
-        var item = inventoryRepository.findByProductId(command.productId())
-                .orElseThrow(() -> new IllegalArgumentException("Inventory item not found: " + command.productId()));
+        var item = inventoryRepository.findById(command.itemId())
+                .orElseThrow(() -> new IllegalArgumentException("Inventory item not found: " + command.itemId()));
 
         var maybeLow = item.reserveStock(command);
 
@@ -95,8 +95,8 @@ public class InventoryCommandServiceImpl implements InventoryCommandService {
     @Override
     @Transactional
     public void handle(ReleaseInventoryCommand command) {
-        var item = inventoryRepository.findByProductId(command.productId())
-                .orElseThrow(() -> new IllegalArgumentException("Inventory item not found: " + command.productId()));
+        var item = inventoryRepository.findById(command.itemId())
+                .orElseThrow(() -> new IllegalArgumentException("Inventory item not found: " + command.itemId()));
 
         item.releaseStock(command);
 

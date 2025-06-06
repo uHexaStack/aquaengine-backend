@@ -16,8 +16,10 @@ public class CreateInventoryItemCommandFromResourceAssembler {
      */
     public static CreateInventoryItemCommand toCommandFromResource(CreateInventoryItemResource resource) {
         return new CreateInventoryItemCommand(
-                resource.productId(),
-                resource.initialQuantity()
+                resource.name(),
+                resource.price(),
+                resource.initialQuantity(),
+                resource.threshold()
         );
     }
 }

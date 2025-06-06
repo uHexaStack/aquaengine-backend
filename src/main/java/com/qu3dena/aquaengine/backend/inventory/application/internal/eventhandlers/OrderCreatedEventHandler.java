@@ -53,15 +53,15 @@ public class OrderCreatedEventHandler {
 
         var productQuantities = orderFacade.getOrderLines(orderId);
 
-        productQuantities.forEach((productId, quantity) -> {
+        productQuantities.forEach((inventoryItemId, quantity) -> {
             try {
                 var maybeLow = inventoryCommandService.handle(
-                        new ReserveInventoryCommand(productId, quantity)
+                        new ReserveInventoryCommand(inventoryItemId, quantity)
                 );
                 maybeLow.ifPresent(eventPublisher::publishEvent);
             } catch (IllegalArgumentException ex) {
                 System.err.println(
-                        "Inventory reservation failed for productId=" + productId +
+                        "Inventory reservation failed for inventoryItemId=" + inventoryItemId +
                         " in orderId" + orderId + ": " + ex.getMessage()
                 );
             }
