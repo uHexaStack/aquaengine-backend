@@ -18,6 +18,7 @@ public record SignUpResource(
         String role,
         String firstName,
         String lastName,
+        String ruc,
         String contactEmail,
         String contactPhone,
         String companyName,

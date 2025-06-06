@@ -9,6 +9,7 @@ public record SignUpCommand(
         Role role,
         String firstName,
         String lastName,
+        String ruc,
         String contactEmail,
         String contactPhone,
         String companyName,

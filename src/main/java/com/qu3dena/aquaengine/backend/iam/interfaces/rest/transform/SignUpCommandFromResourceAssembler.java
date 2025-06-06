@@ -31,6 +31,7 @@ public class SignUpCommandFromResourceAssembler {
                 roleEntity,
                 resource.firstName(),
                 resource.lastName(),
+                resource.ruc(),
                 resource.contactEmail(),
                 resource.contactPhone(),
                 resource.companyName(),

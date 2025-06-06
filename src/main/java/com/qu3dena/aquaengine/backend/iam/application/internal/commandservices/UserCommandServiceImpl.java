@@ -73,6 +73,7 @@ public class UserCommandServiceImpl implements UserCommandService {
                 saved.getId(),
                 command.firstName(),
                 command.lastName(),
+                command.ruc(),
                 command.contactEmail(),
                 command.contactPhone(),
                 command.companyName(),

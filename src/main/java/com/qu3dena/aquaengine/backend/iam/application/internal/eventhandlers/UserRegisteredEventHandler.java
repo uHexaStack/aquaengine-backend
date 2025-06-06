@@ -20,6 +20,7 @@ public class UserRegisteredEventHandler {
                 event.userId(),
                 event.firstName(),
                 event.lastName(),
+                event.ruc(),
                 event.contactEmail(),
                 event.contactPhone(),
                 event.companyName(),
