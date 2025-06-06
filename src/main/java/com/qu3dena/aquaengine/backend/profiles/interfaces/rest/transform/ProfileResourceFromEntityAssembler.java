@@ -9,6 +9,7 @@ public class ProfileResourceFromEntityAssembler {
         return new ProfileResource(
                 entity.getUserId(),
                 entity.getFullName(),
+                entity.getRuc(),
                 entity.getContactEmail(),
                 entity.getContactPhone(),
                 entity.getCompanyInfo()

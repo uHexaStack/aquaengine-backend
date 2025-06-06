@@ -23,6 +23,7 @@ public interface ProfileContextFacade {
             Long userId,
             String firstName,
             String lastName,
+            String ruc,
             String contactEmail,
             String contactPhone,
             String companyName,

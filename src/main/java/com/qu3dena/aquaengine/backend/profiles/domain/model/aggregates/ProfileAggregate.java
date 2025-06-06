@@ -37,6 +37,17 @@ public class ProfileAggregate extends AuditableAbstractAggregateRoot<ProfileAggr
     })
     private PersonName personName;
 
+
+    /**
+     * Unique identifier for the user's company, represented as a RUC (Registro Único de Contribuyentes).
+     */
+    @Embedded
+    @AttributeOverride(
+            name = "value",
+            column = @Column(name = "ruc", nullable = false, length = 11)
+    )
+    private RUC ruc;
+
     /**
      * Embedded value object containing the user's contact email address.
      */
@@ -72,17 +83,17 @@ public class ProfileAggregate extends AuditableAbstractAggregateRoot<ProfileAggr
      *
      * @param firstName    User's first name.
      * @param lastName     User's last name.
+     * @param ruc          User's company RUC (Registro Único de Contribuyentes).
      * @param contactEmail User's contact email address.
      * @param contactPhone User's contact phone number.
      * @param companyName  Company name.
      * @param street       Company street address.
      * @param city         Company city.
      * @param postalCode   Company postal code.
-     * @param number       Company phone number.
      * @param country      Company country.
      */
-    public ProfileAggregate(String firstName, String lastName, String contactEmail, String contactPhone, String companyName,
-                            String street, String city, String postalCode, String number, String country) {
+    public ProfileAggregate(String firstName, String lastName, RUC ruc, String contactEmail, String contactPhone, String companyName,
+                            String street, String city, String postalCode, String country) {
         this.personName = new PersonName(firstName, lastName);
         this.contactEmail = new ContactEmail(contactEmail);
         this.contactPhone = new ContactPhone(contactPhone);
@@ -98,6 +109,7 @@ public class ProfileAggregate extends AuditableAbstractAggregateRoot<ProfileAggr
     public ProfileAggregate(CreateProfileCommand command) {
         this.userId = command.userId();
         this.personName = new PersonName(command.firstName(), command.lastName());
+        this.ruc = new RUC(command.ruc());
         this.contactEmail = new ContactEmail(command.contactEmail());
         this.contactPhone = new ContactPhone(command.contactPhone());
         this.companyInfo = new CompanyInfo(
@@ -153,5 +165,9 @@ public class ProfileAggregate extends AuditableAbstractAggregateRoot<ProfileAggr
      */
     public String getCompanyInfo() {
         return companyInfo.getCompanyInfo();
+    }
+
+    public String getRuc() {
+        return ruc.value();
     }
 }
