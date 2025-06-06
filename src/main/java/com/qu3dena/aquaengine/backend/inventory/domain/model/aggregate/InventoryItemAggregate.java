@@ -73,7 +73,7 @@ public class InventoryItemAggregate extends AuditableAbstractAggregateRoot<Inven
 
         quantityOnHand = new Quantity(newQuantity);
 
-        if (quantityOnHand.amount() <= 5)
+        if (quantityOnHand.amount() <= threshold)
             return Optional.of(new StockLowEvent(this.getId(), name, quantityOnHand.amount()));
 
         return Optional.empty();
@@ -95,7 +95,7 @@ public class InventoryItemAggregate extends AuditableAbstractAggregateRoot<Inven
 
         quantityOnHand = new Quantity(newQuantity);
 
-        if (newQuantity <= 5)
+        if (newQuantity <= threshold)
             return Optional.of(new StockLowEvent(this.getId(), name, newQuantity));
 
         return Optional.empty();
