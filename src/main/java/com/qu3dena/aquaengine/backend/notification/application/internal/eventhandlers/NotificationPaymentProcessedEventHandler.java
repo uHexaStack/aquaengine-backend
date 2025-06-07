@@ -8,12 +8,12 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 @Service
-public class PaymentProcessedEventHandler {
+public class NotificationPaymentProcessedEventHandler {
 
     private final NotificationCommandService commandService;
     private final ProfileContextFacade profileFacade;
 
-    public PaymentProcessedEventHandler(
+    public NotificationPaymentProcessedEventHandler(
             NotificationCommandService commandService,
             ProfileContextFacade       profileFacade
     ) {
