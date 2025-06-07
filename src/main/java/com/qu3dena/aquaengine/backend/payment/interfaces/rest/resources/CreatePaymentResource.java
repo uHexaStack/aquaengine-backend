@@ -11,6 +11,7 @@ import java.math.BigDecimal;
  * @param method   the method used for the payment (e.g., CREDIT_CARD)
  */
 public record CreatePaymentResource(
+        Long userId,
         Long orderId,
         BigDecimal amount,
         String currency,

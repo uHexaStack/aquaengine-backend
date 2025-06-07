@@ -48,7 +48,7 @@ public class PaymentContextFacadeImpl implements PaymentContextFacade {
      * {@inheritDoc}
      */
     @Override
-    public Long processPayment(Long orderId, BigDecimal amount, String currency, String method) {
+    public Long processPayment(Long userId, Long orderId, BigDecimal amount, String currency, String method) {
         if (orderId == null || amount == null || method == null || currency == null)
             return 0L;
 
@@ -56,7 +56,7 @@ public class PaymentContextFacadeImpl implements PaymentContextFacade {
         if (maybeStatus.isEmpty())
             return 0L;
 
-        var command = new ProcessPaymentCommand(orderId, amount, currency, method);
+        var command = new ProcessPaymentCommand(userId, orderId, amount, currency, method);
         var maybePayment = paymentCommandService.handle(command);
         return maybePayment.map(AuditableAbstractAggregateRoot::getId).orElse(0L);
     }

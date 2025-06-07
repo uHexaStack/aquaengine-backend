@@ -40,6 +40,7 @@ public class OrderConfirmedEventHandler {
      */
     @EventListener
     public void onOrderConfirmed(OrderConfirmedEvent event) {
+        Long userId = event.userId();
         Long orderId = event.orderId();
 
         BigDecimal totalAmount = BigDecimal
@@ -48,7 +49,7 @@ public class OrderConfirmedEventHandler {
         String currency = "USD";
         String method = "CREDIT_CARD";
 
-        var command = new ProcessPaymentCommand(orderId, totalAmount, currency, method);
+        var command = new ProcessPaymentCommand(userId, orderId, totalAmount, currency, method);
 
         paymentCommandService.handle(command);
     }

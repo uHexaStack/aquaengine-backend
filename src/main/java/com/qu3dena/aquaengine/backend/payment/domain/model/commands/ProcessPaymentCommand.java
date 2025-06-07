@@ -10,18 +10,21 @@ import java.util.Objects;
  * currency, and payment method. It validates the provided values upon construction.
  * </p>
  *
+ * @param userId   the unique identifier for the user; can be null if not applicable
  * @param orderId  the unique identifier for the order; must not be null
  * @param amount   the monetary amount for the payment; must be greater than zero
  * @param currency the currency of the payment; must not be null or blank
  * @param method   the payment method; must not be null or blank
  */
 public record ProcessPaymentCommand(
+        Long userId,
         Long orderId,
         BigDecimal amount,
         String currency,
         String method
 ) {
     public ProcessPaymentCommand {
+        Objects.requireNonNull(userId, "UserId cannot be null");
         Objects.requireNonNull(orderId, "OrderId cannot be null");
         Objects.requireNonNull(amount, "Amount cannot be null");
 

@@ -16,6 +16,7 @@ public class CreatePaymentCommandFromResourceAssembler {
      */
     public static ProcessPaymentCommand toCommandFromResource(CreatePaymentResource resource) {
         return new ProcessPaymentCommand(
+                resource.userId(),
                 resource.orderId(),
                 resource.amount(),
                 resource.currency(),

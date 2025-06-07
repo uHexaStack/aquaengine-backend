@@ -89,10 +89,10 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
 
         // 6) Publish the appropriate event based on the next status
         if (nextStatus == PaymentStatusType.COMPLETED) {
-            eventPublisher.publishEvent(new PaymentProcessedEvent(saved.getId(), saved.getOrderId()));
+            eventPublisher.publishEvent(new PaymentProcessedEvent(saved.getUserId(), saved.getId(), saved.getOrderId()));
         } else {
             eventPublisher.publishEvent(
-                    new PaymentFailedEvent(saved.getOrderId(), "Invalid amount or processing error"));
+                    new PaymentFailedEvent(saved.getUserId(), saved.getOrderId(), "Invalid amount or processing error"));
         }
 
         return Optional.of(saved);

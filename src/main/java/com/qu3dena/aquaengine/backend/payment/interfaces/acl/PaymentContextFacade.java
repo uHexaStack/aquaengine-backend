@@ -13,13 +13,14 @@ public interface PaymentContextFacade {
     /**
      * Processes a payment.
      *
+     * @param userId   the unique identifier of the user; can be null if not applicable
      * @param orderId  the unique identifier of the order
      * @param amount   the payment amount
      * @param currency the currency of the payment
      * @param method   the payment method
      * @return the unique identifier of the processed payment
      */
-    Long processPayment(Long orderId, BigDecimal amount, String currency, String method);
+    Long processPayment(Long userId, Long orderId, BigDecimal amount, String currency, String method);
 
     /**
      * Refunds a payment.

@@ -29,6 +29,12 @@ import java.util.Optional;
 public class PaymentAggregate extends AuditableAbstractAggregateRoot<PaymentAggregate> {
 
     /**
+     * The unique identifier for the payment aggregate.
+     */
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    /**
      * The unique identifier for the order associated with the payment.
      */
     @Column(name = "order_id", nullable = false, unique = true)
@@ -69,12 +75,14 @@ public class PaymentAggregate extends AuditableAbstractAggregateRoot<PaymentAggr
      * @param transactionDate the transaction date of the payment
      */
     public PaymentAggregate(
+            Long userId,
             Long orderId,
             Money amount,
             PaymentStatus status,
             PaymentMethod paymentMethod,
             Instant transactionDate
     ) {
+        this.userId = userId;
         this.orderId = orderId;
         this.amount = amount;
         this.status = status;
@@ -91,6 +99,7 @@ public class PaymentAggregate extends AuditableAbstractAggregateRoot<PaymentAggr
      */
     public static PaymentAggregate create(ProcessPaymentCommand command, PaymentStatus pendingStatus) {
         return new PaymentAggregate(
+                command.userId(),
                 command.orderId(),
                 new Money(command.amount(), command.currency()),
                 pendingStatus,

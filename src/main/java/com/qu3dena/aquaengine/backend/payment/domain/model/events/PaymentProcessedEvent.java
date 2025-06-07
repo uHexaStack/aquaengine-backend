@@ -6,5 +6,8 @@ package com.qu3dena.aquaengine.backend.payment.domain.model.events;
  * @param paymentId the unique identifier of the processed payment
  * @param orderId   the unique identifier of the order associated with the payment
  */
-public record PaymentProcessedEvent(Long paymentId, Long orderId) {
-}
+public record PaymentProcessedEvent(
+        Long userId,
+        Long paymentId,
+        Long orderId
+) { }
