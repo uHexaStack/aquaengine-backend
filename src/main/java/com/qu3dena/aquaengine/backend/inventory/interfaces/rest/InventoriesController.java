@@ -4,6 +4,7 @@ import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.AdjustInve
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.ReleaseInventoryCommand;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.ReserveInventoryCommand;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByUserIdAndNameQuery;
+import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryItemByIdQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemByNameQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemsQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryCommandService;
@@ -71,33 +72,31 @@ public class InventoriesController {
             @PathVariable Long itemId,
             @RequestParam int adjustBy
     ) {
-        var command = new AdjustInventoryCommand(itemId, adjustBy);
-        var maybe = inventoryCommandService.handle(command);
+        try {
+            inventoryCommandService.handle(
+                    new AdjustInventoryCommand(itemId, adjustBy));
 
-        if (maybe.isEmpty())
+            return getInventoryItemResponse(itemId);
+        }
+        catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().build();
-
-        return getInventoryItemResponse(itemId);
+        }
     }
 
     @PostMapping("/{itemId}/reserve")
-    @Operation(summary = "Reserve stock", description = "Reserve stock for a product (used by orders)")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Stock reserved"),
-            @ApiResponse(responseCode = "400", description = "Invalid input or insufficient stock"),
-            @ApiResponse(responseCode = "404", description = "Item not found")
-    })
     public ResponseEntity<InventoryItemResource> reserveStock(
             @PathVariable Long itemId,
             @RequestParam int quantity
     ) {
-        var command = new ReserveInventoryCommand(itemId, quantity);
-        var maybe = inventoryCommandService.handle(command);
+        try {
+            inventoryCommandService.handle(
+                    new ReserveInventoryCommand(itemId, quantity));
 
-        if (maybe.isEmpty())
+            return getInventoryItemResponse(itemId);
+        }
+        catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().build();
-
-        return getInventoryItemResponse(itemId);
+        }
     }
 
     @PostMapping("/{itemId}/release")
@@ -122,7 +121,7 @@ public class InventoriesController {
         return getInventoryItemResponse(itemId);
     }
 
-    @GetMapping("/users/{userId}/inventories/{name}")
+    @GetMapping("/users/{userId}/items/{name}")
     @Operation(summary = "Get available quantity", description = "Get available stock for a product")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Stock found"),
@@ -187,18 +186,15 @@ public class InventoriesController {
     }
 
     private ResponseEntity<InventoryItemResource> getInventoryItemResponse(Long itemId) {
-        // Placeholder logic for retrieving an inventory item by itemId
-        return ResponseEntity.notFound().build();
-    }
-
-    private ResponseEntity<InventoryItemResource> getInventoryItemResponseByName(Long userId, String name) {
-        var query = new GetInventoryByUserIdAndNameQuery(userId, name);
+        var query = new GetInventoryItemByIdQuery(itemId);
         var maybeItem = inventoryQueryService.handle(query);
 
         if (maybeItem.isEmpty())
             return ResponseEntity.notFound().build();
 
-        var resource = InventoryItemResourceFromEntityAssembler.toResourceFromEntity(maybeItem.get());
+        var resource = InventoryItemResourceFromEntityAssembler
+                .toResourceFromEntity(maybeItem.get());
+
         return ResponseEntity.ok(resource);
     }
 }
