@@ -1,7 +1,9 @@
 package com.qu3dena.aquaengine.backend.profiles.application.acl;
 
 import com.qu3dena.aquaengine.backend.profiles.domain.model.commands.CreateProfileCommand;
+import com.qu3dena.aquaengine.backend.profiles.domain.model.queries.GetProfileByUserIdQuery;
 import com.qu3dena.aquaengine.backend.profiles.domain.services.ProfileCommandService;
+import com.qu3dena.aquaengine.backend.profiles.domain.services.ProfileQueryService;
 import com.qu3dena.aquaengine.backend.profiles.interfaces.acl.ProfileContextFacade;
 import org.springframework.stereotype.Service;
 
@@ -9,9 +11,11 @@ import org.springframework.stereotype.Service;
 public class ProfileContextFacadeImpl implements ProfileContextFacade {
 
     private final ProfileCommandService profileCommandService;
+    private final ProfileQueryService profileQueryService;
 
-    public ProfileContextFacadeImpl(ProfileCommandService profileCommandService) {
+    public ProfileContextFacadeImpl(ProfileCommandService profileCommandService, ProfileQueryService profileQueryService) {
         this.profileCommandService = profileCommandService;
+        this.profileQueryService = profileQueryService;
     }
 
     @Override
@@ -43,5 +47,21 @@ public class ProfileContextFacadeImpl implements ProfileContextFacade {
         );
 
         profileCommandService.handle(command);
+    }
+
+    @Override
+    public String getContactEmailByUserId(Long userId) {
+        return profileQueryService.handle(new GetProfileByUserIdQuery(userId))
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Profile not found for user ID: " + userId)
+                ).getContactEmail();
+    }
+
+    @Override
+    public String getContactPhoneByUserId(Long userId) {
+        return profileQueryService.handle(new GetProfileByUserIdQuery(userId))
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Profile not found for user ID: " + userId)
+                ).getContactPhone();
     }
 }

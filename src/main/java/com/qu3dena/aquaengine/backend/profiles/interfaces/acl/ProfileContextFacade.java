@@ -32,4 +32,8 @@ public interface ProfileContextFacade {
             String postalCode,
             String companyCountry
     );
+
+    String getContactEmailByUserId(Long userId);
+
+    String getContactPhoneByUserId(Long userId);
 }
