@@ -3,7 +3,7 @@ package com.qu3dena.aquaengine.backend.inventory.interfaces.rest;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.AdjustInventoryCommand;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.ReleaseInventoryCommand;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.ReserveInventoryCommand;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByNameQuery;
+import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByUserIdAndNameQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemByNameQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemsQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryCommandService;
@@ -122,14 +122,17 @@ public class InventoriesController {
         return getInventoryItemResponse(itemId);
     }
 
-    @GetMapping("/{name}")
+    @GetMapping("/users/{userId}/inventories/{name}")
     @Operation(summary = "Get available quantity", description = "Get available stock for a product")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Stock found"),
             @ApiResponse(responseCode = "404", description = "Product not found")
     })
-    public ResponseEntity<InventoryItemQuantityResource> getAvailableQuantity(@PathVariable String name) {
-        var query = new GetInventoryByNameQuery(name);
+    public ResponseEntity<InventoryItemQuantityResource> getAvailableQuantity(
+            @PathVariable Long userId,
+            @PathVariable String name
+    ) {
+        var query = new GetInventoryByUserIdAndNameQuery(userId, name);
         var maybeItem = inventoryQueryService.handle(query);
 
         if (maybeItem.isEmpty())
@@ -139,16 +142,17 @@ public class InventoriesController {
         return ResponseEntity.ok(resource);
     }
 
-    @GetMapping("/{name}/low-stock")
+    @GetMapping("/users/{userId}/{name}/low-stock")
     @Operation(summary = "Get item with low stock", description = "Get item with low stock by name")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Low stock item found"),
             @ApiResponse(responseCode = "404", description = "Low stock item not found"),
     })
     public ResponseEntity<InventoryItemLowStockResource> getLowStockItem(
+            @PathVariable Long userId,
             @PathVariable String name
     ) {
-        var query = new GetLowStockItemByNameQuery(name);
+        var query = new GetLowStockItemByNameQuery(userId, name);
         var item = inventoryQueryService.handle(query);
 
         if (item.isEmpty()) {
@@ -187,8 +191,8 @@ public class InventoriesController {
         return ResponseEntity.notFound().build();
     }
 
-    private ResponseEntity<InventoryItemResource> getInventoryItemResponseByName(String name) {
-        var query = new GetInventoryByNameQuery(name);
+    private ResponseEntity<InventoryItemResource> getInventoryItemResponseByName(Long userId, String name) {
+        var query = new GetInventoryByUserIdAndNameQuery(userId, name);
         var maybeItem = inventoryQueryService.handle(query);
 
         if (maybeItem.isEmpty())

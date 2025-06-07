@@ -41,7 +41,7 @@ public class InventoryCommandServiceImpl implements InventoryCommandService {
      */
     @Override
     public Optional<InventoryItemAggregate> handle(CreateInventoryItemCommand command) {
-        var exists = inventoryRepository.findByName(command.name());
+        var exists = inventoryRepository.findByUserIdAndName(command.userId(), command.name());
 
         if (exists.isPresent())
             throw new RuntimeException("Inventory item for product " + command.name() + " already exists");

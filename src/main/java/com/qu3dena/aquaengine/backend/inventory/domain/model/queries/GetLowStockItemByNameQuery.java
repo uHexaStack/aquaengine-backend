@@ -8,8 +8,12 @@ package com.qu3dena.aquaengine.backend.inventory.domain.model.queries;
  *
  * @param name the name of the inventory item to search for.
  */
-public record GetLowStockItemByNameQuery(String name) {
+public record GetLowStockItemByNameQuery(Long userId, String name) {
     public GetLowStockItemByNameQuery {
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("User ID must be a positive number");
+        }
+
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Name cannot be null or blank");
         }

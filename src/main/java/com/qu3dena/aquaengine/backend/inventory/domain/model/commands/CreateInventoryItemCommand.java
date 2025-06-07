@@ -3,6 +3,7 @@ package com.qu3dena.aquaengine.backend.inventory.domain.model.commands;
 import com.qu3dena.aquaengine.backend.shared.domain.model.valuobjects.Money;
 
 public record CreateInventoryItemCommand(
+        Long userId,
         String name,
         Money price,
         int quantityOnHand,
@@ -10,6 +11,10 @@ public record CreateInventoryItemCommand(
 ) {
 
     public CreateInventoryItemCommand {
+
+        if (userId == null || userId <= 0)
+            throw new IllegalArgumentException("Invalid user ID");
+
         if (name == null || name.isBlank())
             throw new IllegalArgumentException("Invalid name");
 

@@ -16,6 +16,7 @@ public class InventoryItemLowStockResourceFromEntityAssembler {
      */
     public static InventoryItemLowStockResource toResourceFromEntity(InventoryItemAggregate resource) {
         return new InventoryItemLowStockResource(
+                resource.getUserId(),
                 resource.getName(),
                 resource.getQuantityOnHand(),
                 resource.getThreshold()

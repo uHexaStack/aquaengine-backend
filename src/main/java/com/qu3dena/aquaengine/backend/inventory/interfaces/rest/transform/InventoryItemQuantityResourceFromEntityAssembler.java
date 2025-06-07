@@ -6,6 +6,7 @@ import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.resources.Invent
 public class InventoryItemQuantityResourceFromEntityAssembler {
     public static InventoryItemQuantityResource toResourceFromEntity(InventoryItemAggregate entity) {
         return new InventoryItemQuantityResource(
+                entity.getUserId(),
                 entity.getName(),
                 entity.getQuantityOnHand()
         );

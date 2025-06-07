@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface InventoryContextFacade {
 
-    Long createInventoryItem(String name, Money price, int initialQuantity, int threshold);
+    Long createInventoryItem(Long userId, String name, Money price, int initialQuantity, int threshold);
 
     boolean adjustInventory(Long itemId, int adjustBy);
 
@@ -14,7 +14,7 @@ public interface InventoryContextFacade {
 
     boolean releaseStock(Long itemId, int quantity);
 
-    int getAvailableQuantity(String name);
+    int getAvailableQuantity(Long userId, String name);
 
-    List<String> getItemsWithLowStock(String name);
+    List<String> getItemsWithLowStock(Long userId, String name);
 }

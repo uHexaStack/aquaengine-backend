@@ -1,7 +1,7 @@
 package com.qu3dena.aquaengine.backend.inventory.application.internal.queryservices;
 
 import com.qu3dena.aquaengine.backend.inventory.domain.model.aggregate.InventoryItemAggregate;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByNameQuery;
+import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByUserIdAndNameQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemByNameQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemsQuery;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryQueryService;
@@ -35,8 +35,8 @@ public class InventoryQueryServiceImpl implements InventoryQueryService {
      * {@inheritDoc}
      */
     @Override
-    public Optional<InventoryItemAggregate> handle(GetInventoryByNameQuery query) {
-        return inventoryRepository.findByName(query.name());
+    public Optional<InventoryItemAggregate> handle(GetInventoryByUserIdAndNameQuery query) {
+        return inventoryRepository.findByUserIdAndName(query.userId(), query.name());
     }
 
     /**
@@ -44,7 +44,7 @@ public class InventoryQueryServiceImpl implements InventoryQueryService {
      */
     @Override
     public Optional<InventoryItemAggregate> handle(GetLowStockItemByNameQuery query) {
-        return inventoryRepository.findByName(query.name())
+        return inventoryRepository.findByUserIdAndName(query.userId(), query.name())
                 .filter(item -> item.getQuantityOnHand() <= item.getThreshold());
     }
 

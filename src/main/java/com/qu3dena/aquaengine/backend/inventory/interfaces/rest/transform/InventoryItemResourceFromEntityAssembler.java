@@ -8,6 +8,7 @@ public class InventoryItemResourceFromEntityAssembler {
     public static InventoryItemResource toResourceFromEntity(InventoryItemAggregate entity) {
         return new InventoryItemResource(
                 entity.getId(),
+                entity.getUserId(),
                 entity.getName(),
                 entity.getPrice(),
                 entity.getQuantityOnHand(),

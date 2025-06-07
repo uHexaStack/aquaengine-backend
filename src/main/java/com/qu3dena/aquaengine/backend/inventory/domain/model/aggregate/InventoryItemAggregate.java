@@ -22,6 +22,9 @@ import java.util.Optional;
 @EqualsAndHashCode(callSuper = true)
 public class InventoryItemAggregate extends AuditableAbstractAggregateRoot<InventoryItemAggregate> {
 
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
     @Column(nullable = false)
     private String name;
 
@@ -37,7 +40,8 @@ public class InventoryItemAggregate extends AuditableAbstractAggregateRoot<Inven
     @Column(nullable = false)
     private int threshold;
 
-    public InventoryItemAggregate(String name, Money price, Quantity quantityOnHand, int threshold) {
+    public InventoryItemAggregate(Long userId, String name, Money price, Quantity quantityOnHand, int threshold) {
+        this.userId = userId;
         this.name = name;
         this.price = price;
         this.quantityOnHand = quantityOnHand;
@@ -50,6 +54,7 @@ public class InventoryItemAggregate extends AuditableAbstractAggregateRoot<Inven
             throw new IllegalArgumentException("Available quantity cannot be negative");
 
         return new InventoryItemAggregate(
+                command.userId(),
                 command.name(),
                 command.price(),
                 new Quantity(command.quantityOnHand()),
