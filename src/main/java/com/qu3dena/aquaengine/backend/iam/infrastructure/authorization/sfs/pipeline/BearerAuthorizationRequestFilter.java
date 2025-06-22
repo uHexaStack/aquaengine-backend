@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -21,10 +22,10 @@ import java.util.Objects;
 /**
  * Filter to authenticate requests with Bearer token
  * <p>
- *     This filter will authenticate requests with Bearer token.
- *     It will extract the token from the request and validate it.
- *     If the token is valid, it will set the user authentication in the security context.
- *     The user authentication will be set with the user details from the token.
+ * This filter will authenticate requests with Bearer token.
+ * It will extract the token from the request and validate it.
+ * If the token is valid, it will set the user authentication in the security context.
+ * The user authentication will be set with the user details from the token.
  * </p>
  */
 public class BearerAuthorizationRequestFilter extends OncePerRequestFilter {
@@ -35,7 +36,8 @@ public class BearerAuthorizationRequestFilter extends OncePerRequestFilter {
 
     /**
      * Constructor
-     * @param tokenService {@link BearerTokenService} Bearer token service
+     *
+     * @param tokenService       {@link BearerTokenService} Bearer token service
      * @param userDetailsService {@link UserDetailsService} User details service
      */
     public BearerAuthorizationRequestFilter(BearerTokenService tokenService, UserDetailsService userDetailsService) {
@@ -46,33 +48,42 @@ public class BearerAuthorizationRequestFilter extends OncePerRequestFilter {
     /**
      * Filter requests
      * <p>
-     *     This method will filter the requests.
-     *     It will extract the Bearer token from the request.
-     *     If the token is valid, it will set the user authentication in the security context.
-     *     The user authentication will be set with the user details from the token.
-     *     If the token is not valid, it will log a warning.
+     * This method will filter the requests.
+     * It will extract the Bearer token from the request.
+     * If the token is valid, it will set the user authentication in the security context.
+     * The user authentication will be set with the user details from the token.
+     * If the token is not valid, it will log a warning.
      * </p>
-     * @param request {@link HttpServletRequest} Request
-     * @param response {@link HttpServletResponse} Response
+     *
+     * @param request     {@link HttpServletRequest} Request
+     * @param response    {@link HttpServletResponse} Response
      * @param filterChain {@link FilterChain} Filter chain
      * @throws ServletException If an error occurs
-     * @throws IOException If an error occurs
+     * @throws IOException      If an error occurs
      */
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
-            var token = tokenService.getBearerTokenFrom(request);
-            LOGGER.info("Token: {}", token);
-            if (Objects.nonNull(token) && tokenService.validateToken(token)) {
-                var username = tokenService.getUsernameFromToken(token);
-                var userDetails = (UserDetailsImpl) userDetailsService.loadUserByUsername(username);
-                SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationTokenBuilder.build(userDetails, request));
-            } else {
-                LOGGER.warn("Token is not valid");
+            // ──── 1) Extraer el header y el token ────────────────
+            String bearerToken = tokenService.getBearerTokenFrom(request);
+            if (bearerToken != null && tokenService.validateToken(bearerToken)) {
+                // ──── 2) Obtener el username y cargar UserDetails ───
+                String username = tokenService.getUsernameFromToken(bearerToken);
+                UserDetailsImpl user = (UserDetailsImpl)
+                        userDetailsService.loadUserByUsername(username);
+
+                // ──── 3) Construir el Authentication y setear en contexto ───
+                UsernamePasswordAuthenticationToken auth =
+                        UsernamePasswordAuthenticationTokenBuilder.build(user, request);
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
             }
-        } catch (Exception e) {
-            LOGGER.error("Cannot set user authentication: {}", e.getMessage());
+            // si bearerToken es null o inválido, no autenticamos y dejamos pasar
+        } catch (Exception ex) {
+            LOGGER.error("Cannot set user authentication: {}", ex.getMessage());
         }
+
+        // ──── 4) Continuar la cadena de filtros ─────────────
         filterChain.doFilter(request, response);
     }
 }

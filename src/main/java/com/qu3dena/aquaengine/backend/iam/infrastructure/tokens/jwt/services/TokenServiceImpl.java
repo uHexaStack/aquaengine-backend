@@ -20,7 +20,7 @@ import java.util.function.Function;
 @Service
 public class TokenServiceImpl implements BearerTokenService {
     private final Logger LOGGER = LoggerFactory.getLogger(TokenServiceImpl.class);
-    private static final String AUTHORIZATION_PARAMETER_NAME = "Authorization";
+    private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_TOKEN_PREFIX = "Bearer ";
     private static final int TOKEN_START_INDEX = 7;
 
@@ -55,15 +55,15 @@ public class TokenServiceImpl implements BearerTokenService {
     }
 
     private String getAuthorizationParameterFrom(HttpServletRequest request) {
-        return request.getHeader(AUTHORIZATION_PARAMETER_NAME);
+        return request.getHeader(AUTHORIZATION_HEADER);
     }
 
-    private String buildTokenWithDefaultParameters(String username) {
+    private String buildTokenWithDefaultParameters(String userId) {
         var issuedAt = new Date();
         var expiration = DateUtils.addDays(issuedAt, expirationDays);
         var key = getSigningKey();
         return Jwts.builder()
-                .subject(username)
+                .subject(userId)
                 .issuedAt(issuedAt)
                 .expiration(expiration)
                 .signWith(key)
@@ -75,9 +75,11 @@ public class TokenServiceImpl implements BearerTokenService {
     }
 
     @Override
-    public String getBearerTokenFrom(HttpServletRequest token) {
-        String parameter = getAuthorizationParameterFrom(token);
-        if(isTokenPresentIn(parameter) && isBearerTokenIn(parameter)) return extractTokenFrom(parameter);
+    public String getBearerTokenFrom(HttpServletRequest request) {
+        String header = request.getHeader(AUTHORIZATION_HEADER);
+        if (header != null && header.startsWith(BEARER_TOKEN_PREFIX)) {
+            return header.substring(BEARER_TOKEN_PREFIX.length());
+        }
         return null;
     }
 
