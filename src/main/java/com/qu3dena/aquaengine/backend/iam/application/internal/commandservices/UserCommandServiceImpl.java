@@ -104,7 +104,7 @@ public class UserCommandServiceImpl implements UserCommandService {
         if (!hashingService.matches(command.password(), existingUser.getPassword()))
             throw new RuntimeException("Invalid password");
 
-        var token = tokenService.generateToken(existingUser.getUsername());
+        var token = tokenService.generateToken(existingUser.getId().toString());
 
         return Optional.of(ImmutablePair.of(existingUser, token));
     }
