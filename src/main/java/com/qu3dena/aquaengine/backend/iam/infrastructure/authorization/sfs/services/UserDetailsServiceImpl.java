@@ -17,33 +17,26 @@ import org.springframework.stereotype.Service;
  */
 @Service(value = "defaultUserDetailsService")
 public class UserDetailsServiceImpl implements UserDetailsService {
+
     private final UserRepository userRepository;
 
-    /**
-     * Constructs a new {@code UserDetailsServiceImpl} with the specified user repository.
-     *
-     * @param userRepository the repository used to access user data
-     */
     public UserDetailsServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Loads the user details by username.
-     * <p>
-     * Searches for a user by username in the database. If found, returns a {@link UserDetailsImpl}
-     * instance representing the user. If not found, throws a {@link UsernameNotFoundException}.
-     * </p>
-     *
-     * @param username the username identifying the user whose data is required
-     * @return a fully populated {@link UserDetails} instance (never {@code null})
-     * @throws UsernameNotFoundException if the user could not be found or has no granted authorities
-     */
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        var user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
+    public UserDetails loadUserByUsername(String source) throws UsernameNotFoundException {
+        if (source.matches("\\d+")) {
+            long id = Long.parseLong(source);
+            return userRepository.findById(id)
+                    .map(UserDetailsImpl::build)
+                    .orElseThrow(() ->
+                            new UsernameNotFoundException("User not found with id: " + id));
+        }
 
-        return UserDetailsImpl.build(user);
+        return userRepository.findByUsername(source)
+                .map(UserDetailsImpl::build)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("User not found with username: " + source));
     }
 }
