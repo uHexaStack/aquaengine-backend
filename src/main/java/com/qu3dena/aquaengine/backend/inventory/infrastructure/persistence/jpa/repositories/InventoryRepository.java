@@ -10,6 +10,8 @@ import java.util.Optional;
 @Repository
 public interface InventoryRepository extends JpaRepository<InventoryItemAggregate, Long> {
 
+    List<InventoryItemAggregate> findByUserId(Long userId);
+
     Optional<InventoryItemAggregate> findByUserIdAndName(Long userId, String name);
 
     List<InventoryItemAggregate> findByUserIdAndQuantityOnHandLessThanEqual(Long userId, int threshold);

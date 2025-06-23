@@ -1,10 +1,7 @@
 package com.qu3dena.aquaengine.backend.inventory.application.internal.queryservices;
 
 import com.qu3dena.aquaengine.backend.inventory.domain.model.aggregate.InventoryItemAggregate;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByUserIdAndNameQuery;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryItemByIdQuery;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemByNameQuery;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemsQuery;
+import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.*;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryQueryService;
 import com.qu3dena.aquaengine.backend.inventory.infrastructure.persistence.jpa.repositories.InventoryRepository;
 import org.springframework.stereotype.Service;
@@ -60,5 +57,10 @@ public class InventoryQueryServiceImpl implements InventoryQueryService {
     @Override
     public Optional<InventoryItemAggregate> handle(GetInventoryItemByIdQuery query) {
         return inventoryRepository.findById(query.id());
+    }
+
+    @Override
+    public List<InventoryItemAggregate> handle(GetInventoryItemsByUserIdQuery query) {
+        return inventoryRepository.findByUserId(query.userId());
     }
 }
