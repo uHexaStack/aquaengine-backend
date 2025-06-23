@@ -22,6 +22,8 @@ import java.util.List;
 @EqualsAndHashCode
 public class UserDetailsImpl implements UserDetails {
 
+    private final Long id;
+
     /**
      * The username identifying the user.
      */
@@ -63,11 +65,13 @@ public class UserDetailsImpl implements UserDetails {
      * Constructs a new {@code UserDetailsImpl} with the provided username, password, and authorities.
      * All account status flags are set to {@code true} by default.
      *
+     * @param id the unique identifier for the user
      * @param username    the username identifying the user
      * @param password    the password for the user
      * @param authorities the authorities granted to the user
      */
-    public UserDetailsImpl(String username, String password, Collection<? extends GrantedAuthority> authorities) {
+    public UserDetailsImpl(Long id, String username, String password, Collection<? extends GrantedAuthority> authorities) {
+        this.id = id;
         this.username = username;
         this.password = password;
         this.authorities = authorities;
@@ -91,9 +95,9 @@ public class UserDetailsImpl implements UserDetails {
     public static UserDetailsImpl build(UserAggregate user) {
         var authorities = List.of(new SimpleGrantedAuthority(user.getRole().getName().name()));
         return new UserDetailsImpl(
+                user.getId(),
                 user.getUsername(),
                 user.getPassword(),
-                authorities
-        );
+                authorities);
     }
 }
