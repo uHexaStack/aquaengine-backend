@@ -1,29 +1,16 @@
 package com.qu3dena.aquaengine.backend.inventory.interfaces.rest;
 
-import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.AdjustInventoryCommand;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.ReleaseInventoryCommand;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.ReserveInventoryCommand;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryByUserIdAndNameQuery;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetInventoryItemByIdQuery;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemByNameQuery;
-import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.GetLowStockItemsQuery;
+import com.qu3dena.aquaengine.backend.inventory.domain.model.commands.*;
+import com.qu3dena.aquaengine.backend.inventory.domain.model.queries.*;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryCommandService;
 import com.qu3dena.aquaengine.backend.inventory.domain.services.InventoryQueryService;
-import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.resources.CreateInventoryItemResource;
-import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.resources.InventoryItemLowStockResource;
-import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.resources.InventoryItemQuantityResource;
-import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.resources.InventoryItemResource;
-import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.transform.CreateInventoryItemCommandFromResourceAssembler;
-import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.transform.InventoryItemLowStockResourceFromEntityAssembler;
-import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.transform.InventoryItemQuantityResourceFromEntityAssembler;
-import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.transform.InventoryItemResourceFromEntityAssembler;
+import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.resources.*;
+import com.qu3dena.aquaengine.backend.inventory.interfaces.rest.transform.*;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.responses.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,167 +21,171 @@ import java.util.stream.Collectors;
 @Tag(name = "Inventory", description = "Inventory Management Endpoints")
 public class InventoriesController {
 
-    private final InventoryCommandService inventoryCommandService;
-    private final InventoryQueryService inventoryQueryService;
+    private final InventoryCommandService commandService;
+    private final InventoryQueryService queryService;
 
-    public InventoriesController(InventoryCommandService inventoryCommandService, InventoryQueryService inventoryQueryService) {
-        this.inventoryCommandService = inventoryCommandService;
-        this.inventoryQueryService = inventoryQueryService;
+    public InventoriesController(InventoryCommandService commandService,
+                                 InventoryQueryService queryService) {
+        this.commandService = commandService;
+        this.queryService = queryService;
+    }
+
+    @GetMapping
+    @Operation(summary = "List my inventory items",
+            description = "Returns all inventory items for the authenticated user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Inventory items retrieved"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<List<InventoryItemResource>> listMyItems(
+            @AuthenticationPrincipal(expression = "id") Long userId
+    ) {
+        List<InventoryItemResource> items = queryService
+                .handle(new GetInventoryItemsByUserIdQuery(userId))
+                .stream()
+                .map(InventoryItemResourceFromEntityAssembler::toResourceFromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(items);
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Create inventory item", description = "Creates a new inventory item with initial quantity")
-    @ApiResponses(value = {
+    @Operation(summary = "Create inventory item",
+            description = "Creates a new inventory item for the authenticated user")
+    @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Inventory item created"),
-            @ApiResponse(responseCode = "400", description = "Invalid input or item already exists")
+            @ApiResponse(responseCode = "400", description = "Invalid input or item already exists"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<InventoryItemResource> createInventoryItem(
+    public ResponseEntity<InventoryItemResource> createItem(
+            @AuthenticationPrincipal(expression = "id") Long userId,
             @RequestBody CreateInventoryItemResource resource
     ) {
-        var command = CreateInventoryItemCommandFromResourceAssembler.toCommandFromResource(resource);
-        var item = inventoryCommandService.handle(command);
+        var command = CreateInventoryItemCommandFromResourceAssembler
+                .toCommandFromResource(userId, resource);
+        
+        var created = commandService.handle(command)
+                .orElseThrow(); 
+        
+        var res = InventoryItemResourceFromEntityAssembler
+                .toResourceFromEntity(created);
 
-        if (item.isEmpty())
-            return ResponseEntity.badRequest().build();
-
-        var itemResource = InventoryItemResourceFromEntityAssembler.toResourceFromEntity(item.get());
-        return ResponseEntity.status(HttpStatus.CREATED).body(itemResource);
+        return ResponseEntity.status(HttpStatus.CREATED).body(res);
     }
 
     @PutMapping("/adjust/{itemId}")
-    @Operation(summary = "Adjust inventory", description = "Adjust stock (positive to add, negative to remove)")
-    @ApiResponses(value = {
+    @Operation(summary = "Adjust inventory stock",
+            description = "Adjust stock (positive to add, negative to remove)")
+    @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Stock adjusted"),
             @ApiResponse(responseCode = "400", description = "Invalid input or insufficient stock"),
-            @ApiResponse(responseCode = "404", description = "Item not found")
+            @ApiResponse(responseCode = "404", description = "Item not found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<InventoryItemResource> adjustInventory(
+    public ResponseEntity<InventoryItemResource> adjust(
+            @AuthenticationPrincipal(expression = "id") Long userId,
             @PathVariable Long itemId,
             @RequestParam int adjustBy
     ) {
-        try {
-            inventoryCommandService.handle(
-                    new AdjustInventoryCommand(itemId, adjustBy));
-
-            return getInventoryItemResponse(itemId);
-        }
-        catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().build();
-        }
+        commandService.handle(new AdjustInventoryCommand(itemId, adjustBy));
+        return getItemResponse(itemId);
     }
 
     @PostMapping("/{itemId}/reserve")
-    public ResponseEntity<InventoryItemResource> reserveStock(
+    @Operation(summary = "Reserve stock",
+            description = "Reserve a quantity of stock")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Stock reserved"),
+            @ApiResponse(responseCode = "400", description = "Invalid input"),
+            @ApiResponse(responseCode = "404", description = "Item not found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    public ResponseEntity<InventoryItemResource> reserve(
+            @AuthenticationPrincipal(expression = "id") Long userId,
             @PathVariable Long itemId,
             @RequestParam int quantity
     ) {
-        try {
-            inventoryCommandService.handle(
-                    new ReserveInventoryCommand(itemId, quantity));
-
-            return getInventoryItemResponse(itemId);
-        }
-        catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().build();
-        }
+        commandService.handle(new ReserveInventoryCommand(itemId, quantity));
+        return getItemResponse(itemId);
     }
 
     @PostMapping("/{itemId}/release")
-    @Operation(summary = "Release stock", description = "Release previously reserved stock")
-    @ApiResponses(value = {
+    @Operation(summary = "Release reserved stock",
+            description = "Release a previously reserved quantity of stock")
+    @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Stock released"),
             @ApiResponse(responseCode = "400", description = "Invalid input"),
-            @ApiResponse(responseCode = "404", description = "Item not found")
+            @ApiResponse(responseCode = "404", description = "Item not found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<InventoryItemResource> releaseStock(
+    public ResponseEntity<InventoryItemResource> release(
+            @AuthenticationPrincipal(expression = "id") Long userId,
             @PathVariable Long itemId,
             @RequestParam int quantity
     ) {
-        var command = new ReleaseInventoryCommand(itemId, quantity);
-
-        try {
-            inventoryCommandService.handle(command);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        return getInventoryItemResponse(itemId);
+        commandService.handle(new ReleaseInventoryCommand(itemId, quantity));
+        return getItemResponse(itemId);
     }
 
-    @GetMapping("/users/{userId}/items/{name}")
-    @Operation(summary = "Get available quantity", description = "Get available stock for a product")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Stock found"),
-            @ApiResponse(responseCode = "404", description = "Product not found")
+    @GetMapping("/items/{name}")
+    @Operation(summary = "Get available quantity for item",
+            description = "Returns the available stock for a named item")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Quantity retrieved"),
+            @ApiResponse(responseCode = "404", description = "Item not found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<InventoryItemQuantityResource> getAvailableQuantity(
-            @PathVariable Long userId,
+    public ResponseEntity<InventoryItemQuantityResource> getQuantity(
+            @AuthenticationPrincipal(expression = "id") Long userId,
             @PathVariable String name
     ) {
-        var query = new GetInventoryByUserIdAndNameQuery(userId, name);
-        var maybeItem = inventoryQueryService.handle(query);
-
-        if (maybeItem.isEmpty())
-            return ResponseEntity.notFound().build();
-
-        var resource = InventoryItemQuantityResourceFromEntityAssembler.toResourceFromEntity(maybeItem.get());
-        return ResponseEntity.ok(resource);
+        var maybe = queryService.handle(new GetInventoryByUserIdAndNameQuery(userId, name));
+        return maybe
+                .map(InventoryItemQuantityResourceFromEntityAssembler::toResourceFromEntity)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/users/{userId}/{name}/low-stock")
-    @Operation(summary = "Get item with low stock", description = "Get item with low stock by name")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Low stock item found"),
-            @ApiResponse(responseCode = "404", description = "Low stock item not found"),
+    @GetMapping("/items/{name}/low-stock")
+    @Operation(summary = "Get low-stock item by name",
+            description = "Returns low-stock details for a named item")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Low stock data retrieved"),
+            @ApiResponse(responseCode = "404", description = "Item not found or not low-stock"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<InventoryItemLowStockResource> getLowStockItem(
-            @PathVariable Long userId,
+    public ResponseEntity<InventoryItemLowStockResource> getLowStock(
+            @AuthenticationPrincipal(expression = "id") Long userId,
             @PathVariable String name
     ) {
-        var query = new GetLowStockItemByNameQuery(userId, name);
-        var item = inventoryQueryService.handle(query);
-
-        if (item.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        var resource = InventoryItemLowStockResourceFromEntityAssembler
-                .toResourceFromEntity(item.get());
-
-        return ResponseEntity.ok(resource);
+        var maybe = queryService.handle(new GetLowStockItemByNameQuery(userId, name));
+        return maybe
+                .map(InventoryItemLowStockResourceFromEntityAssembler::toResourceFromEntity)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/low-stock")
-    @Operation(summary = "Get items with low stock", description = "Get item list with low stock")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Low stock items found"),
-            @ApiResponse(responseCode = "404", description = "Low stock items not found"),
+    @Operation(summary = "List all low-stock items",
+            description = "Returns all items currently in low-stock")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Low-stock items retrieved"),
+            @ApiResponse(responseCode = "404", description = "No low-stock items found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<List<InventoryItemLowStockResource>> getLowStockItems() {
-        var query = new GetLowStockItemsQuery();
-        var items = inventoryQueryService.handle(query);
-
-        if (items.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        var resources = items.stream()
+    public ResponseEntity<List<InventoryItemLowStockResource>> listLowStock() {
+        List<InventoryItemLowStockResource> resources = queryService
+                .handle(new GetLowStockItemsQuery())
+                .stream()
                 .map(InventoryItemLowStockResourceFromEntityAssembler::toResourceFromEntity)
                 .collect(Collectors.toList());
-
         return ResponseEntity.ok(resources);
     }
-
-    private ResponseEntity<InventoryItemResource> getInventoryItemResponse(Long itemId) {
-        var query = new GetInventoryItemByIdQuery(itemId);
-        var maybeItem = inventoryQueryService.handle(query);
-
-        if (maybeItem.isEmpty())
-            return ResponseEntity.notFound().build();
-
-        var resource = InventoryItemResourceFromEntityAssembler
-                .toResourceFromEntity(maybeItem.get());
-
-        return ResponseEntity.ok(resource);
+    
+    private ResponseEntity<InventoryItemResource> getItemResponse(Long itemId) {
+        var maybe = queryService.handle(new GetInventoryItemByIdQuery(itemId));
+        return maybe
+                .map(InventoryItemResourceFromEntityAssembler::toResourceFromEntity)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }
