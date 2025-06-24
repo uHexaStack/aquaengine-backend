@@ -8,5 +8,6 @@ public record InventoryItemResource(
         String name,
         Money price,
         int quantityOnHand,
+        int reservedQuantity,
         int threshold
 ) { }

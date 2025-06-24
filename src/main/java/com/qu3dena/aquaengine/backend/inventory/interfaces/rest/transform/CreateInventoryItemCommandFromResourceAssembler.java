@@ -19,7 +19,7 @@ public class CreateInventoryItemCommandFromResourceAssembler {
                 userId,
                 resource.name(),
                 resource.price(),
-                resource.initialQuantity(),
+                resource.quantityOnHand(),
                 resource.threshold()
         );
     }

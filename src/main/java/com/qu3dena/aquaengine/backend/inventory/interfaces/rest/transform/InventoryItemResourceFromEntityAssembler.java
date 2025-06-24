@@ -12,6 +12,7 @@ public class InventoryItemResourceFromEntityAssembler {
                 entity.getName(),
                 entity.getPrice(),
                 entity.getQuantityOnHand(),
+                entity.getReservedQuantity(),
                 entity.getThreshold()
         );
     }
