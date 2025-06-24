@@ -37,6 +37,12 @@ public class InventoryItemAggregate extends AuditableAbstractAggregateRoot<Inven
     )
     private Quantity quantityOnHand;
 
+    @Embedded
+    @AttributeOverrides(
+            @AttributeOverride(name = "amount", column = @Column(name = "reserved_quantity", nullable = false))
+    )
+    private Quantity reservedQuantity;
+
     @Column(nullable = false)
     private int threshold;
 
@@ -45,6 +51,7 @@ public class InventoryItemAggregate extends AuditableAbstractAggregateRoot<Inven
         this.name = name;
         this.price = price;
         this.quantityOnHand = quantityOnHand;
+        this.reservedQuantity = new Quantity(0);
         this.threshold = threshold;
     }
 
@@ -86,38 +93,34 @@ public class InventoryItemAggregate extends AuditableAbstractAggregateRoot<Inven
 
     public Optional<StockLowEvent> reserveStock(ReserveInventoryCommand command) {
 
-        var quantity = command.quantityToReserve();
+        var toReserve = command.quantityToReserve();
+        var available = getQuantityOnHand() - getReservedQuantity();
 
-        if (quantity < 0)
-            throw new IllegalArgumentException("Quantity to reserve must be > 0");
-
-        var available = quantityOnHand.amount();
-
-        if (available < quantity)
+        if (available < toReserve)
             throw new IllegalArgumentException("Not enough stock to reserve for product " + name);
 
-        var newQuantity = available - quantity;
+        reservedQuantity = new Quantity(getReservedQuantity() + toReserve);
 
-        quantityOnHand = new Quantity(newQuantity);
-
-        if (newQuantity <= threshold)
-            return Optional.of(new StockLowEvent(this.getId(), name, newQuantity));
+        if (getQuantityOnHand() - getReservedQuantity() <= threshold)
+            return Optional.of(new StockLowEvent(this.getId(), name, getQuantityOnHand()));
 
         return Optional.empty();
     }
 
     public void releaseStock(ReleaseInventoryCommand command) {
-        var quantity = command.quantityToRelease();
+        var toRelease = command.quantityToRelease();
 
-        if (quantity <= 0)
-            throw new IllegalArgumentException("Quantity to release must be > 0");
+        if (getReservedQuantity() < toRelease)
+            throw new IllegalArgumentException("Cannot release more stock than reserved for product " + name);
 
-        var newQuantity = this.quantityOnHand.amount() + quantity;
-
-        this.quantityOnHand = new Quantity(newQuantity);
+        reservedQuantity = new Quantity(getReservedQuantity() - toRelease);
     }
 
     public int getQuantityOnHand() {
         return quantityOnHand.amount();
+    }
+
+    public int getReservedQuantity() {
+        return reservedQuantity.amount();
     }
 }
