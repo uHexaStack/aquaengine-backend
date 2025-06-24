@@ -20,10 +20,4 @@ public interface BearerTokenService extends TokenService {
      */
     String getBearerTokenFrom(HttpServletRequest token);
 
-    /**
-     * Method to generate a Bearer Token from an Authentication object.
-     * @param authentication {@link Authentication} The authentication object from which the token will be generated.
-     * @return String containing the Bearer Token.
-     */
-    String generateToken(Authentication authentication);
 }

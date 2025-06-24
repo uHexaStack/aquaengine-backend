@@ -58,12 +58,13 @@ public class TokenServiceImpl implements BearerTokenService {
         return request.getHeader(AUTHORIZATION_HEADER);
     }
 
-    private String buildTokenWithDefaultParameters(String userId) {
+    private String buildTokenWithDefaultParameters(String userId, String role) {
         var issuedAt = new Date();
         var expiration = DateUtils.addDays(issuedAt, expirationDays);
         var key = getSigningKey();
         return Jwts.builder()
                 .subject(userId)
+                .claim("role", role)
                 .issuedAt(issuedAt)
                 .expiration(expiration)
                 .signWith(key)
@@ -84,13 +85,13 @@ public class TokenServiceImpl implements BearerTokenService {
     }
 
     @Override
-    public String generateToken(Authentication authentication) {
-        return buildTokenWithDefaultParameters(authentication.getName());
+    public String generateToken(String username) {
+        throw new UnsupportedOperationException("Use generateToken(Authentication) instead");
     }
 
     @Override
-    public String generateToken(String username) {
-        return buildTokenWithDefaultParameters(username);
+    public String generateToken(String username, String role) {
+        return buildTokenWithDefaultParameters(username, role);
     }
 
     @Override
