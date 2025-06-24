@@ -13,11 +13,16 @@ import com.qu3dena.aquaengine.backend.order.interfaces.rest.resources.OrderResou
 import com.qu3dena.aquaengine.backend.order.interfaces.rest.transform.CreateOrderCommandFromResourceAssembler;
 import com.qu3dena.aquaengine.backend.order.interfaces.rest.transform.OrderResourceFromEntityAssembler;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,75 +38,107 @@ public class OrdersController {
     private final OrderQueryService orderQueryService;
     private final OrderCommandService orderCommandService;
 
-    public OrdersController(OrderQueryService orderQueryService, OrderCommandService orderCommandService) {
+    public OrdersController(OrderQueryService orderQueryService,
+                            OrderCommandService orderCommandService) {
         this.orderQueryService = orderQueryService;
         this.orderCommandService = orderCommandService;
     }
 
     @GetMapping
-    @Operation(summary = "Get orders by user ID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Orders found"),
-            @ApiResponse(responseCode = "404", description = "Orders not found")})
-    public ResponseEntity<List<OrderResource>> getOrdersByUserId(@RequestParam Long userId) {
-        var orders = orderQueryService.handle(new GetOrdersByUserIdQuery(userId));
+    @Operation(summary = "Get orders for the authenticated user",
+               description = "Retrieves a list of orders for the user associated with the authentication principal")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Orders found",
+                         content = @Content(schema = @Schema(implementation = OrderResource.class))),
+            @ApiResponse(responseCode = "404", description = "Orders not found", content = @Content)
+    })
+    public ResponseEntity<List<OrderResource>> getOrdersByUserId(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "id") Long userId
+    ) {
+        var orders = orderQueryService
+                .handle(new GetOrdersByUserIdQuery(userId));
 
-        if (orders.isEmpty())
-            return ResponseEntity.notFound().build();
-
-        var orderResources = orders.stream()
+        var resources = orders.stream()
                 .map(OrderResourceFromEntityAssembler::toResourceFromEntity)
                 .toList();
 
-        return ResponseEntity.ok(orderResources);
+        return ResponseEntity.ok(resources);
     }
 
     @GetMapping("/{orderId}")
-    @Operation(summary = "Get order by ID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Order found"),
-            @ApiResponse(responseCode = "404", description = "Order not found")})
-    public ResponseEntity<OrderResource> getOrderById(@PathVariable Long orderId) {
-        var order = orderQueryService.handle(new GetOrderByIdQuery(orderId));
+    @Operation(summary = "Get order by ID",
+               description = "Retrieves a specific order given its ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Order found",
+                         content = @Content(schema = @Schema(implementation = OrderResource.class))),
+            @ApiResponse(responseCode = "404", description = "Order not found", content = @Content)
+    })
+    public ResponseEntity<OrderResource> getOrderById(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "id") Long userId,
+            @Parameter(description = "ID of the order to retrieve") @PathVariable Long orderId
+    ) {
+        var maybeOrder = orderQueryService
+                .handle(new GetOrderByIdQuery(orderId));
 
-        if (order.isEmpty())
+        if (maybeOrder.isEmpty()) {
             return ResponseEntity.notFound().build();
+        }
 
-        var orderResource = OrderResourceFromEntityAssembler.toResourceFromEntity(order.get());
-        return ResponseEntity.ok(orderResource);
+        var resource = OrderResourceFromEntityAssembler
+                .toResourceFromEntity(maybeOrder.get());
+
+        return ResponseEntity.ok(resource);
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Create a new order")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Order created"),
-            @ApiResponse(responseCode = "400", description = "Invalid input")
+    @Operation(summary = "Create a new order",
+               description = "Creates a new order for the authenticated user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Order created",
+                         content = @Content(schema = @Schema(implementation = OrderResource.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid input", content = @Content)
     })
-    public ResponseEntity<OrderResource> createOrder(@RequestBody CreateOrderResource resource) {
-        var command = CreateOrderCommandFromResourceAssembler.toCommandFromResource(resource);
+    public ResponseEntity<OrderResource> createOrder(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "id") Long userId,
+            @RequestBody(description = "Resource with order details", required = true,
+                         content = @Content(schema = @Schema(implementation = CreateOrderResource.class)))
+            @org.springframework.web.bind.annotation.RequestBody CreateOrderResource resource
+    ) {
+        var command = CreateOrderCommandFromResourceAssembler
+                .toCommandFromResource(userId, resource);
 
-        var order = orderCommandService.handle(command);
+        var created = orderCommandService.handle(command)
+                .orElseGet(() -> null);
 
-        return order.map(source -> new ResponseEntity<>
-                        (OrderResourceFromEntityAssembler.toResourceFromEntity(source), CREATED))
-                .orElseGet(() -> ResponseEntity.badRequest().build());
+        if (created == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        var orderRes = OrderResourceFromEntityAssembler
+                .toResourceFromEntity(created);
+        return new ResponseEntity<>(orderRes, CREATED);
     }
 
     @PatchMapping(path = "/{orderId}/cancel", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Cancel order", description = "Updates order status to CANCELLED")
+    @Operation(summary = "Cancel order",
+               description = "Updates order status to CANCELLED")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Order updated to CANCELLED"),
-        @ApiResponse(responseCode = "404", description = "Order not found"),
-        @ApiResponse(responseCode = "400", description = "Invalid input")
+            @ApiResponse(responseCode = "200", description = "Order cancelled",
+                         content = @Content(schema = @Schema(implementation = OrderResource.class))),
+            @ApiResponse(responseCode = "404", description = "Order not found", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Invalid input", content = @Content)
     })
-    public ResponseEntity<OrderResource> patchOrderStatus(
-            @PathVariable Long orderId,
-            @RequestBody Map<String, String> updates
+    public ResponseEntity<OrderResource> cancelOrder(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "id") Long userId,
+            @Parameter(description = "ID of the order to cancel") @PathVariable Long orderId,
+            @RequestBody(description = "Map containing the status update. Expected value: CANCELLED", required = true,
+                         content = @Content(schema = @Schema(implementation = Map.class)))
+            @org.springframework.web.bind.annotation.RequestBody Map<String, String> updates
     ) {
-        String newStatus = updates.get("status");
-
-        if (!"CANCELLED".equalsIgnoreCase(newStatus))
+        String status = updates.get("status");
+        if (!"CANCELLED".equalsIgnoreCase(status)) {
             return ResponseEntity.badRequest().build();
+        }
 
         try {
             orderCommandService.handle(new CancelOrderCommand(orderId));
@@ -109,93 +146,105 @@ public class OrdersController {
             return ResponseEntity.notFound().build();
         }
 
-        var updated = orderQueryService.handle(new GetOrderByIdQuery(orderId))
+        var updated = orderQueryService
+                .handle(new GetOrderByIdQuery(orderId))
                 .orElseThrow();
-
         return ResponseEntity.ok(
                 OrderResourceFromEntityAssembler.toResourceFromEntity(updated)
         );
     }
 
     @PatchMapping(path = "/{orderId}/confirm", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Confirm order", description = "Updates order status to CONFIRMED")
+    @Operation(summary = "Confirm order",
+               description = "Updates order status to CONFIRMED")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Order updated to CONFIRMED"),
-        @ApiResponse(responseCode = "400", description = "Invalid input"),
-        @ApiResponse(responseCode = "404", description = "Order not found")
+            @ApiResponse(responseCode = "200", description = "Order confirmed",
+                         content = @Content(schema = @Schema(implementation = OrderResource.class))),
+            @ApiResponse(responseCode = "404", description = "Order not found", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Invalid input", content = @Content)
     })
-    public ResponseEntity<OrderResource> patchOrderStatusToConfirmed(
-            @PathVariable Long orderId,
-            @RequestBody Map<String, String> updates
+    public ResponseEntity<OrderResource> confirmOrder(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "id") Long userId,
+            @Parameter(description = "ID of the order to confirm") @PathVariable Long orderId,
+            @RequestBody(description = "Map containing the status update. Expected value: CONFIRMED", required = true,
+                         content = @Content(schema = @Schema(implementation = Map.class)))
+            @org.springframework.web.bind.annotation.RequestBody Map<String, String> updates
     ) {
-        String newStatus = updates.get("status");
-        if (!"CONFIRMED".equalsIgnoreCase(newStatus))
+        String status = updates.get("status");
+        if (!"CONFIRMED".equalsIgnoreCase(status)) {
             return ResponseEntity.badRequest().build();
-
+        }
         try {
             orderCommandService.handle(new ConfirmOrderCommand(orderId));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.notFound().build();
         }
-
-        var updated = orderQueryService.handle(new GetOrderByIdQuery(orderId)).orElseThrow();
+        var updated = orderQueryService
+                .handle(new GetOrderByIdQuery(orderId)).orElseThrow();
         return ResponseEntity.ok(
                 OrderResourceFromEntityAssembler.toResourceFromEntity(updated)
         );
     }
 
     @PatchMapping(path = "/{orderId}/ship", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Ship order", description = "Updates order status to SHIPPED")
+    @Operation(summary = "Ship order",
+               description = "Updates order status to SHIPPED")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Order updated to SHIPPED"),
-        @ApiResponse(responseCode = "400", description = "Invalid input"),
-        @ApiResponse(responseCode = "404", description = "Order not found")
+            @ApiResponse(responseCode = "200", description = "Order shipped",
+                         content = @Content(schema = @Schema(implementation = OrderResource.class))),
+            @ApiResponse(responseCode = "404", description = "Order not found", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Invalid input", content = @Content)
     })
-    public ResponseEntity<OrderResource> patchOrderStatusToShipped(
-            @PathVariable Long orderId,
-            @RequestBody Map<String, String> updates
+    public ResponseEntity<OrderResource> shipOrder(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "id") Long userId,
+            @Parameter(description = "ID of the order to ship") @PathVariable Long orderId,
+            @RequestBody(description = "Map containing the status update. Expected value: SHIPPED", required = true,
+                         content = @Content(schema = @Schema(implementation = Map.class)))
+            @org.springframework.web.bind.annotation.RequestBody Map<String, String> updates
     ) {
-        String newStatus = updates.get("status");
-
-        if (!"SHIPPED".equalsIgnoreCase(newStatus))
+        String status = updates.get("status");
+        if (!"SHIPPED".equalsIgnoreCase(status)) {
             return ResponseEntity.badRequest().build();
-
+        }
         try {
             orderCommandService.handle(new ShipOrderCommand(orderId));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.notFound().build();
         }
-
-        var updated = orderQueryService.handle(new GetOrderByIdQuery(orderId)).orElseThrow();
-
+        var updated = orderQueryService
+                .handle(new GetOrderByIdQuery(orderId)).orElseThrow();
         return ResponseEntity.ok(
                 OrderResourceFromEntityAssembler.toResourceFromEntity(updated)
         );
     }
 
     @PatchMapping(path = "/{orderId}/deliver", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Deliver order", description = "Updates order status to DELIVERED")
+    @Operation(summary = "Deliver order",
+               description = "Updates order status to DELIVERED")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Order updated to DELIVERED"),
-        @ApiResponse(responseCode = "400", description = "Invalid input"),
-        @ApiResponse(responseCode = "404", description = "Order not found")
+            @ApiResponse(responseCode = "200", description = "Order delivered",
+                         content = @Content(schema = @Schema(implementation = OrderResource.class))),
+            @ApiResponse(responseCode = "404", description = "Order not found", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Invalid input", content = @Content)
     })
-    public ResponseEntity<OrderResource> patchOrderStatusToDelivered(
-            @PathVariable Long orderId,
-            @RequestBody Map<String, String> updates
+    public ResponseEntity<OrderResource> deliverOrder(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "id") Long userId,
+            @Parameter(description = "ID of the order to deliver") @PathVariable Long orderId,
+            @RequestBody(description = "Map containing the status update. Expected value: DELIVERED", required = true,
+                         content = @Content(schema = @Schema(implementation = Map.class)))
+            @org.springframework.web.bind.annotation.RequestBody Map<String, String> updates
     ) {
-        String newStatus = updates.get("status");
-
-        if (!"DELIVERED".equalsIgnoreCase(newStatus))
+        String status = updates.get("status");
+        if (!"DELIVERED".equalsIgnoreCase(status)) {
             return ResponseEntity.badRequest().build();
+        }
         try {
             orderCommandService.handle(new DeliverOrderCommand(orderId));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.notFound().build();
         }
-
-        var updated = orderQueryService.handle(new GetOrderByIdQuery(orderId)).orElseThrow();
-
+        var updated = orderQueryService
+                .handle(new GetOrderByIdQuery(orderId)).orElseThrow();
         return ResponseEntity.ok(
                 OrderResourceFromEntityAssembler.toResourceFromEntity(updated)
         );

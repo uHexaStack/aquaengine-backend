@@ -6,7 +6,7 @@ import com.qu3dena.aquaengine.backend.order.interfaces.rest.resources.CreateOrde
 
 public class CreateOrderCommandFromResourceAssembler {
 
-    public static CreateOrderCommand toCommandFromResource(CreateOrderResource command) {
+    public static CreateOrderCommand toCommandFromResource(Long userId, CreateOrderResource command) {
 
         var shippingAddress = new ShippingAddress(
                 command.shippingAddress().street(),
@@ -16,7 +16,7 @@ public class CreateOrderCommandFromResourceAssembler {
         );
 
         return new CreateOrderCommand(
-                command.userId(),
+                userId,
                 shippingAddress,
                 command.lines().stream()
                         .map(line -> new CreateOrderCommand.Line(
