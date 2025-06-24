@@ -19,4 +19,6 @@ public interface InventoryQueryService {
     Optional<InventoryItemAggregate> handle(GetInventoryItemByIdQuery query);
 
     List<InventoryItemAggregate> handle(GetInventoryItemsByUserIdQuery query);
+
+    List<InventoryItemAggregate> handle(GetAllInventoryItemsQuery query);
 }

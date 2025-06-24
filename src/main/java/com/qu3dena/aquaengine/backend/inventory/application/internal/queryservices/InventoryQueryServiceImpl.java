@@ -63,4 +63,9 @@ public class InventoryQueryServiceImpl implements InventoryQueryService {
     public List<InventoryItemAggregate> handle(GetInventoryItemsByUserIdQuery query) {
         return inventoryRepository.findByUserId(query.userId());
     }
+
+    @Override
+    public List<InventoryItemAggregate> handle(GetAllInventoryItemsQuery query) {
+        return inventoryRepository.findAll();
+    }
 }

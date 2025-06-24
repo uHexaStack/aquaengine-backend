@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,6 +49,26 @@ public class InventoriesController {
         return ResponseEntity.ok(items);
     }
 
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ROLE_FISHING_COMPANY')")
+    @Operation(
+            summary = "List all inventory items",
+            description = "Returns a list of all inventory items for a fishing company"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Inventory items retrieved"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden")
+    })
+    public ResponseEntity<List<InventoryItemResource>> listAllItems() {
+        var items = queryService
+                .handle(new GetAllInventoryItemsQuery())
+                .stream()
+                .map(InventoryItemResourceFromEntityAssembler::toResourceFromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(items);
+    }
+
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Create inventory item",
             description = "Creates a new inventory item for the authenticated user")
@@ -62,10 +83,10 @@ public class InventoriesController {
     ) {
         var command = CreateInventoryItemCommandFromResourceAssembler
                 .toCommandFromResource(userId, resource);
-        
+
         var created = commandService.handle(command)
-                .orElseThrow(); 
-        
+                .orElseThrow();
+
         var res = InventoryItemResourceFromEntityAssembler
                 .toResourceFromEntity(created);
 
@@ -180,7 +201,7 @@ public class InventoriesController {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(resources);
     }
-    
+
     private ResponseEntity<InventoryItemResource> getItemResponse(Long itemId) {
         var maybe = queryService.handle(new GetInventoryItemByIdQuery(itemId));
         return maybe
