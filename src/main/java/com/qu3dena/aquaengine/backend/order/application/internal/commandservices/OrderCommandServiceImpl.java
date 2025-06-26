@@ -39,7 +39,9 @@ public class OrderCommandServiceImpl implements OrderCommandService {
 
         events.publishEvent(new OrderCreatedEvent(
                 saved.getId(),
-                command.userId()
+                command.userId(),
+                saved.getTotal().amount(),
+                saved.getTotal().currency()
         ));
 
         return Optional.of(order);

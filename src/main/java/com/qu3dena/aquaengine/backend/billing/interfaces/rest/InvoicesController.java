@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -81,15 +82,17 @@ public class InvoicesController {
      * @param orderId the identifier of the order.
      * @return a ResponseEntity containing the invoice resource if found or an HTTP 404 error.
      */
+    @GetMapping("/{orderId}")
     @Operation(summary = "Get Invoice by Order", description = "Retrieves the invoice associated with a specific order")
-    @ApiResponses(value = {
+    @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Invoice found"),
             @ApiResponse(responseCode = "404", description = "Invoice not found for the given order")
     })
-    @GetMapping("/{orderId}")
-    public ResponseEntity<InvoiceResource> getByOrder(@PathVariable Long orderId) {
+    public ResponseEntity<InvoiceResource> getByOrder(
+            @AuthenticationPrincipal(expression = "id") Long userId,
+            @PathVariable Long orderId
+    ) {
         var query = new GetInvoiceByOrderIdQuery(orderId);
-
         return queryService.handle(query)
                 .map(InvoiceResourceFromEntityAssembler::toResourceFromEntity)
                 .map(ResponseEntity::ok)
